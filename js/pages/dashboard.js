@@ -97,11 +97,13 @@ export function renderDashboard(el) {
 
   loadData()
     .then(data => {
-      state.data = data;
-      if (!state.periods.length) {
-        state.periods     = getAvailablePeriods(data, state.mode);
-        state.periodIndex = getCurrentPeriodIndex(state.periods);
+      // Always rebuild periods from fresh data so stale periods never linger
+      const freshPeriods = getAvailablePeriods(data, state.mode);
+      if (!state.periods.length || state.data !== data) {
+        state.periods     = freshPeriods;
+        state.periodIndex = getCurrentPeriodIndex(freshPeriods);
       }
+      state.data = data;
       renderPage(el);
     })
     .catch(err => {

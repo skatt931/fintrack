@@ -84,12 +84,22 @@ function groupByDate(txns) {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  // Apply params (e.g. from pie chart drill-down)
-  if (params.category !== undefined) state.filterCat    = params.category;
-  if (params.period   !== undefined) state.filterPeriod = params.period;
+  const isDrillDown = params.category !== undefined || params.period !== undefined;
+
+  if (isDrillDown) {
+    // Coming from pie chart — apply the pre-filters
+    if (params.category !== undefined) state.filterCat    = params.category;
+    if (params.period   !== undefined) state.filterPeriod = params.period;
+  } else {
+    // Direct nav (tab bar) — always reset filters so nothing is stale
+    state.filterCat    = null;
+    state.filterPeriod = null;
+    state.search       = '';
+  }
 
   loadData().then(data => {
     state.data = data;
+    // Set period to current if not already set by drill-down
     if (!state.filterPeriod) state.filterPeriod = getCurrentPeriod(data, state.periodMode);
     renderPage(el);
   }).catch(err => {

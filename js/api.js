@@ -2,7 +2,7 @@ import { SPREADSHEET_ID, SHEETS } from './config.js';
 import { getToken, requestToken, clearToken } from './auth.js';
 
 const BASE      = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`;
-const CACHE_KEY = 'finance_data';
+const CACHE_KEY = 'finance_data_v2'; // bumped — busts old format caches
 const CACHE_TTL = 5 * 60 * 1000;
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
