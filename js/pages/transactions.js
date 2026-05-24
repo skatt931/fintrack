@@ -36,14 +36,21 @@ function fmtDateGroup(str) {
 }
 
 function getCurrentPeriod(data, mode) {
+  // Use the most recent period that has ACTUAL transactions — not just a row
+  // in Salary Periods. This handles the common case where the current billing
+  // period has barely started and almost all transactions are still in the
+  // previous period.
+  const key = mode === 'billing' ? 'billing_period' : 'month';
+  const periodsWithData = [...new Set(data.transactions.map(t => t[key]).filter(Boolean))].sort();
+  if (periodsWithData.length) return periodsWithData[periodsWithData.length - 1];
+
+  // Fallback: most recent salary period
+  const sorted = data.salaryPeriods.map(p => p.period).filter(Boolean).sort();
+  if (sorted.length) return sorted[sorted.length - 1];
+
+  // Last resort: calendar month
   const now = new Date();
-  const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  if (mode === 'billing') {
-    const periods = data.salaryPeriods.map(p => p.period).filter(Boolean).sort();
-    // Find most recent period that has started
-    return [...periods].reverse().find(p => p <= cur) || periods[periods.length - 1] || cur;
-  }
-  return cur;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
 function getCategories(data) {

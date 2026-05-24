@@ -31,11 +31,13 @@ function getAvailablePeriods(data, mode) {
   return [...new Set(data.transactions.map(t => t.month).filter(Boolean))].sort().reverse();
 }
 
-function getCurrentPeriodIndex(periods) {
-  const now = new Date();
-  const cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const idx = periods.indexOf(cur);
-  return idx >= 0 ? idx : 0;
+function getCurrentPeriodIndex(periods, transactions, mode) {
+  // Find the most recent period in the list that has actual transaction data
+  const key = mode === 'billing' ? 'billing_period' : 'month';
+  const periodsWithData = new Set(transactions.map(t => t[key]).filter(Boolean));
+  const idx = periods.findIndex(p => periodsWithData.has(p)); // periods is already sorted desc
+  if (idx >= 0) return idx;
+  return 0; // fall back to most recent period
 }
 
 function filterTxns(data, period, mode) {
@@ -101,7 +103,7 @@ export function renderDashboard(el) {
       const freshPeriods = getAvailablePeriods(data, state.mode);
       if (!state.periods.length || state.data !== data) {
         state.periods     = freshPeriods;
-        state.periodIndex = getCurrentPeriodIndex(freshPeriods);
+        state.periodIndex = getCurrentPeriodIndex(freshPeriods, data.transactions, state.mode);
       }
       state.data = data;
       renderPage(el);
@@ -216,7 +218,7 @@ function renderPage(el) {
       if (btn.dataset.mode === state.mode) return;
       state.mode        = btn.dataset.mode;
       state.periods     = getAvailablePeriods(state.data, state.mode);
-      state.periodIndex = getCurrentPeriodIndex(state.periods);
+      state.periodIndex = getCurrentPeriodIndex(state.periods, state.data.transactions, state.mode);
       renderPage(el);
     })
   );
