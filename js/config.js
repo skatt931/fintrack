@@ -18,8 +18,8 @@
 export const OAUTH_CLIENT_ID = '172684065497-8s7bic0oj764ebp61qmt8bufgkdv7mkt.apps.googleusercontent.com';
 export const SPREADSHEET_ID  = '1G6t5rB3OXv3bOk7dTHM4mcUUxZC6rmS7tCqbk7o3LaQ';
 
-// Scopes: readonly for now; change to spreadsheets when Add Expense is built
-export const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+// Full spreadsheets scope — needed for Add Expense and editing transactions
+export const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
 
 // Sheet tab names (must match exactly, including capitalisation)
 export const SHEETS = {

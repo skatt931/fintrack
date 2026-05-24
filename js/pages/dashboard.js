@@ -1,4 +1,5 @@
 import { loadData, clearCache } from '../api.js';
+import { navigate } from '../router.js';
 
 let donutChart = null;
 
@@ -188,7 +189,7 @@ function renderPage(el) {
 
       <!-- Spending breakdown donut -->
       ${hasSpend ? `
-      <div class="section-title">Spending Breakdown</div>
+      <div class="section-title">Spending Breakdown <span class="section-hint">tap a slice to see records</span></div>
       <div class="chart-wrap">
         <div class="chart-container">
           <canvas id="donut-chart"></canvas>
@@ -247,11 +248,11 @@ function renderPage(el) {
           datasets: [{
             data: top.map(b => b.actual),
             backgroundColor: [
-              '#3b82f6','#22c55e','#f59e0b','#ef4444',
+              '#6366f1','#10b981','#f59e0b','#f43f5e',
               '#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899',
             ],
             borderWidth: 0,
-            hoverOffset: 6,
+            hoverOffset: 8,
           }],
         },
         options: {
@@ -269,8 +270,15 @@ function renderPage(el) {
               },
             },
           },
+          onClick: (evt, elements) => {
+            if (!elements.length) return;
+            const idx      = elements[0].index;
+            const category = top[idx]?.category;
+            if (category) navigate('transactions', { category, period: periods[periodIndex] });
+          },
         },
       });
+      canvas.style.cursor = 'pointer';
     }
   }
 }

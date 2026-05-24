@@ -1,8 +1,9 @@
-import { register, initRouter } from './router.js';
-import { renderDashboard }      from './pages/dashboard.js';
-import { renderAdd }            from './pages/add.js';
+import { register, initRouter }       from './router.js';
+import { renderDashboard }             from './pages/dashboard.js';
+import { renderTransactions }          from './pages/transactions.js';
+import { renderAdd }                   from './pages/add.js';
 import { getToken, requestToken, clearToken } from './auth.js';
-import { clearCache }           from './api.js';
+import { clearCache }                  from './api.js';
 
 function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
@@ -10,8 +11,9 @@ function show(id) {
 }
 
 function startApp() {
-  register('dashboard', renderDashboard);
-  register('add',       renderAdd);
+  register('dashboard',    renderDashboard);
+  register('transactions', renderTransactions);
+  register('add',          renderAdd);
   initRouter('dashboard');
 }
 
