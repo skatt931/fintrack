@@ -830,6 +830,139 @@ body {
 .btn-submit:disabled { opacity: 0.6; cursor: default; }
 .btn-submit:not(:disabled):active { transform: scale(0.98); }
 
+/* ── Savings rate card ───────────────────────────────────────────────────── */
+.card-savings {
+  background: linear-gradient(145deg, rgba(124, 58, 237, 0.14) 0%, var(--surface) 60%);
+  border-color: rgba(124, 58, 237, 0.25);
+}
+.card-savings .card-value { color: #a78bfa; }
+
+/* ── Budget pacing marker ────────────────────────────────────────────────── */
+.progress-bar { position: relative; overflow: visible; }
+.pacing-marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 1px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+/* ── Spending Trend chart ────────────────────────────────────────────────── */
+.trend-wrap { height: 180px; }
+
+/* ── Period Comparison ───────────────────────────────────────────────────── */
+.comparison-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.comparison-row:last-child { border-bottom: none; }
+.comparison-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.comparison-amounts {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.comparison-badge {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.comparison-badge.up      { background: rgba(244, 63, 94, 0.12); color: #fb7185; }
+.comparison-badge.down    { background: rgba(16, 185, 129, 0.12); color: #34d399; }
+.comparison-badge.new,
+.comparison-badge.neutral { background: var(--surface-2); color: var(--text-muted); }
+
+/* ── Weekly & Day breakdown ──────────────────────────────────────────────── */
+.breakdown-details {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+.breakdown-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.breakdown-summary::-webkit-details-marker { display: none; }
+.breakdown-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.breakdown-details[open] .breakdown-chevron { transform: rotate(180deg); }
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  padding: 0 16px 16px;
+}
+@media (max-width: 340px) {
+  .breakdown-grid { grid-template-columns: 1fr; }
+}
+.breakdown-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+.breakdown-chart-wrap { position: relative; height: 150px; }
+
+/* ── Recurring Expenses ──────────────────────────────────────────────────── */
+.recurring-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.recurring-item:last-child { border-bottom: none; }
+.recurring-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.recurring-avg {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+}
+.recurring-badge {
+  flex-shrink: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 99px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  white-space: nowrap;
+}
+
 /* ── Error ───────────────────────────────────────────────────────────────── */
 .error-msg {
   background: rgba(244, 63, 94, 0.08);

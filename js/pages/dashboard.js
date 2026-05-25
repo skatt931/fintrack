@@ -2,6 +2,9 @@ import { loadData, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 
 let donutChart = null;
+let trendChart = null;
+let weekChart  = null;
+let dowChart   = null;
 
 // ── State ────────────────────────────────────────────────────────────────────
 
@@ -56,6 +59,11 @@ function computeSummary(txns) {
   return { income, expenses, balance: income - expenses, needsReview };
 }
 
+function computeSavingsRate(summary) {
+  if (!summary.income) return null;
+  return ((summary.income - summary.expenses) / summary.income) * 100;
+}
+
 function computeBudgetProgress(txns, budgets) {
   const expenses = txns.filter(t => t.direction === 'expense');
   const actualByCategory = {};
@@ -92,6 +100,143 @@ function progressClass(actual, budget) {
   return 'ok';
 }
 
+// Returns % of billing period elapsed (0–100), or null if not computable
+function computePeriodElapsed(salaryPeriods, currentPeriod) {
+  const sorted = [...salaryPeriods]
+    .filter(p => p.start_date && p.period)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date));
+  const idx = sorted.findIndex(p => p.period === currentPeriod);
+  if (idx < 0) return null;
+  const start = new Date(sorted[idx].start_date);
+  // End = next period's start_date, or start + 30 days if this is the last
+  const end = idx < sorted.length - 1
+    ? new Date(sorted[idx + 1].start_date)
+    : new Date(start.getTime() + 30 * 86400000);
+  const now = new Date();
+  if (now < start) return 0;
+  if (now >= end)  return 100;
+  return ((now - start) / (end - start)) * 100;
+}
+
+// Last N calendar months of expense spending across ALL transactions
+function computeSpendingTrend(transactions, n = 6) {
+  const byMonth = {};
+  for (const t of transactions) {
+    if (t.direction !== 'expense') continue;
+    const m = t.month || (t.date ? t.date.slice(0, 7) : null);
+    if (!m) continue;
+    byMonth[m] = (byMonth[m] || 0) + parseAmount(t.report_amount);
+  }
+  return Object.entries(byMonth)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-n);
+}
+
+// Current period vs previous period, per category (expenses only)
+function computePeriodComparison(data, currentPeriod, mode) {
+  const periods = getAvailablePeriods(data, mode);
+  const ci = periods.indexOf(currentPeriod);
+  if (ci < 0 || ci >= periods.length - 1) return null;
+  const prevPeriod = periods[ci + 1];
+
+  const toMap = txns => {
+    const m = {};
+    for (const t of txns.filter(t => t.direction === 'expense')) {
+      const cat = t.category || 'Uncategorized';
+      m[cat] = (m[cat] || 0) + parseAmount(t.report_amount);
+    }
+    return m;
+  };
+  const curr = toMap(filterTxns(data, currentPeriod, mode));
+  const prev = toMap(filterTxns(data, prevPeriod, mode));
+
+  const cats = new Set([...Object.keys(curr), ...Object.keys(prev)]);
+  return {
+    prevPeriod,
+    rows: [...cats].map(cat => ({
+      category: cat,
+      current:  curr[cat] || 0,
+      prev:     prev[cat] || 0,
+      pct:      prev[cat] ? ((curr[cat] || 0) - prev[cat]) / prev[cat] * 100 : null,
+    })).sort((a, b) => b.current - a.current),
+  };
+}
+
+// Spending per calendar-week within the current period's transactions
+function computeWeeklySpending(txns) {
+  const byWeek = {};
+  for (const t of txns) {
+    if (t.direction !== 'expense' || !t.date) continue;
+    const day  = new Date(t.date.slice(0, 10)).getDate();
+    const week = Math.ceil(day / 7);
+    const key  = `Wk ${week}`;
+    byWeek[key] = (byWeek[key] || 0) + parseAmount(t.report_amount);
+  }
+  return Object.entries(byWeek).sort(([a], [b]) =>
+    parseInt(a.slice(3)) - parseInt(b.slice(3)));
+}
+
+// Total spending per day-of-week (Mon–Sun) within the current period
+function computeDowSpending(txns) {
+  const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const totals = Array(7).fill(0);
+  for (const t of txns) {
+    if (t.direction !== 'expense' || !t.date) continue;
+    const dow = (new Date(t.date.slice(0, 10)).getDay() + 6) % 7; // Mon = 0
+    totals[dow] += parseAmount(t.report_amount);
+  }
+  return labels.map((l, i) => [l, totals[i]]);
+}
+
+// Categories that appear in ≥ minPeriods distinct billing/calendar periods
+function detectRecurring(transactions, mode, minPeriods = 2) {
+  const byCat = {};
+  for (const t of transactions) {
+    if (t.direction !== 'expense') continue;
+    const cat    = t.category || 'Uncategorized';
+    const period = mode === 'billing' ? t.billing_period : t.month;
+    if (!period) continue;
+    if (!byCat[cat]) byCat[cat] = { periods: new Set(), amounts: [] };
+    byCat[cat].periods.add(period);
+    byCat[cat].amounts.push(parseAmount(t.report_amount));
+  }
+  return Object.entries(byCat)
+    .filter(([, v]) => v.periods.size >= minPeriods)
+    .map(([category, v]) => ({
+      category,
+      periodCount: v.periods.size,
+      avgAmount:   v.amounts.reduce((s, a) => s + a, 0) / v.amounts.length,
+    }))
+    .sort((a, b) => b.avgAmount - a.avgAmount)
+    .slice(0, 8);
+}
+
+// Shared Chart.js options for the mini bar charts
+function miniBarOptions(labelCb) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: ctx => ` ${labelCb ? labelCb(ctx) : fmt(ctx.raw)}` },
+      },
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 10 } } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 4,
+           callback: v => v >= 1000 ? `${Math.round(v/1000)}k` : v } },
+    },
+  };
+}
+
+// Format "2026-04" → "Apr '26"
+function fmtMonth(ym) {
+  const [y, m] = ym.split('-');
+  const name = new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'short' });
+  return `${name} '${y.slice(2)}`;
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 
 export function renderDashboard(el) {
@@ -114,17 +259,33 @@ export function renderDashboard(el) {
 }
 
 function renderPage(el) {
+  // Destroy all existing charts so canvas elements can be re-used
+  [donutChart, trendChart, weekChart, dowChart].forEach(c => { if (c) c.destroy(); });
+  donutChart = trendChart = weekChart = dowChart = null;
+
   const { data, mode, periodIndex, periods } = state;
   if (!periods.length) {
     el.innerHTML = '<div class="dashboard"><div class="error-msg">No data found.</div></div>';
     return;
   }
 
-  const period   = periods[periodIndex];
-  const txns     = filterTxns(data, period, mode);
-  const summary  = computeSummary(txns);
-  const budget   = computeBudgetProgress(txns, data.budgets);
-  const hasSpend = budget.some(b => b.actual > 0);
+  const period      = periods[periodIndex];
+  const txns        = filterTxns(data, period, mode);
+  const summary     = computeSummary(txns);
+  const savingsRate = computeSavingsRate(summary);
+  const budget      = computeBudgetProgress(txns, data.budgets);
+  const hasSpend    = budget.some(b => b.actual > 0);
+
+  // Budget pacing — only meaningful in billing mode
+  const elapsedPct  = mode === 'billing'
+    ? computePeriodElapsed(data.salaryPeriods, period)
+    : null;
+
+  const trend       = computeSpendingTrend(data.transactions);
+  const comparison  = computePeriodComparison(data, period, mode);
+  const weekly      = computeWeeklySpending(txns);
+  const dow         = computeDowSpending(txns);
+  const recurring   = detectRecurring(data.transactions, mode);
 
   el.innerHTML = `
     <div class="dashboard">
@@ -152,10 +313,16 @@ function renderPage(el) {
           <div class="card-label">Expenses</div>
           <div class="card-value">${fmt(summary.expenses)}</div>
         </div>
-        <div class="summary-card card-balance wide">
+        <div class="summary-card card-balance">
           <div class="card-label">Balance</div>
           <div class="card-value ${summary.balance >= 0 ? 'positive' : 'negative'}">
             ${summary.balance >= 0 ? '' : '−'} ${fmt(summary.balance)}
+          </div>
+        </div>
+        <div class="summary-card card-savings">
+          <div class="card-label">Savings Rate</div>
+          <div class="card-value ${savingsRate === null ? '' : savingsRate >= 0 ? 'positive' : 'negative'}">
+            ${savingsRate === null ? '—' : `${savingsRate >= 0 ? '' : '−'}${Math.abs(savingsRate).toFixed(1)}%`}
           </div>
         </div>
       </div>
@@ -171,7 +338,10 @@ function renderPage(el) {
       </div>` : ''}
 
       <!-- Budget progress -->
-      <div class="section-title">Budget vs Actual</div>
+      <div class="section-title">
+        Budget vs Actual
+        ${elapsedPct !== null ? `<span class="section-hint">· white line = ${Math.round(elapsedPct)}% period elapsed</span>` : ''}
+      </div>
       <div class="budget-list">
         ${budget.length ? budget.map(b => {
           const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 100;
@@ -186,6 +356,7 @@ function renderPage(el) {
             </div>
             <div class="progress-bar">
               <div class="progress-fill ${cls}" style="width:${pct}%"></div>
+              ${elapsedPct !== null ? `<div class="pacing-marker" style="left:${elapsedPct}%"></div>` : ''}
             </div>
           </div>`;
         }).join('') : '<div class="budget-item muted-row">No expenses this period</div>'}
@@ -200,6 +371,71 @@ function renderPage(el) {
         </div>
       </div>` : ''}
 
+      <!-- Spending Trend -->
+      ${trend.length >= 2 ? `
+      <div class="section-title">Spending Trend <span class="section-hint">last ${trend.length} months</span></div>
+      <div class="chart-wrap">
+        <div class="chart-container trend-wrap">
+          <canvas id="trend-chart"></canvas>
+        </div>
+      </div>` : ''}
+
+      <!-- Period Comparison -->
+      ${comparison ? `
+      <div class="section-title">vs Previous Period <span class="section-hint">${comparison.prevPeriod}</span></div>
+      <div class="budget-list">
+        ${comparison.rows.map(r => {
+          const arrow = r.pct === null ? '' : r.pct > 0 ? '↑' : r.pct < 0 ? '↓' : '=';
+          const badgeCls = r.pct === null ? 'new' : r.pct > 0 ? 'up' : r.pct < 0 ? 'down' : 'neutral';
+          const pctLabel = r.pct === null
+            ? 'new'
+            : r.pct === 0
+              ? '= same'
+              : `${arrow} ${Math.abs(r.pct).toFixed(0)}%`;
+          return `
+          <div class="comparison-row">
+            <div class="comparison-left">
+              <span class="budget-category">${r.category}</span>
+              <span class="comparison-amounts">${fmt(r.current)}${r.prev ? ` · was ${fmt(r.prev)}` : ''}</span>
+            </div>
+            <span class="comparison-badge ${badgeCls}">${pctLabel}</span>
+          </div>`;
+        }).join('')}
+      </div>` : ''}
+
+      <!-- Weekly & Day-of-Week Breakdown -->
+      ${(weekly.length > 0 || dow.some(([, v]) => v > 0)) ? `
+      <details class="breakdown-details">
+        <summary class="breakdown-summary">
+          <span class="section-title" style="margin-top:0">Weekly &amp; Day Breakdown</span>
+          <svg class="breakdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="breakdown-grid">
+          <div>
+            <div class="breakdown-label">By Week</div>
+            <div class="breakdown-chart-wrap"><canvas id="week-chart"></canvas></div>
+          </div>
+          <div>
+            <div class="breakdown-label">By Day of Week</div>
+            <div class="breakdown-chart-wrap"><canvas id="dow-chart"></canvas></div>
+          </div>
+        </div>
+      </details>` : ''}
+
+      <!-- Recurring Expenses -->
+      ${recurring.length > 0 ? `
+      <div class="section-title">Recurring Expenses <span class="section-hint">≥2 periods</span></div>
+      <div class="budget-list">
+        ${recurring.map(r => `
+        <div class="recurring-item">
+          <div class="recurring-left">
+            <span class="budget-category">${r.category}</span>
+            <span class="recurring-avg">avg ${fmt(r.avgAmount)}</span>
+          </div>
+          <span class="recurring-badge">× ${r.periodCount}</span>
+        </div>`).join('')}
+      </div>` : ''}
+
       <!-- Refresh -->
       <button class="btn-refresh" id="refresh-btn">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -211,6 +447,8 @@ function renderPage(el) {
 
     </div>
   `;
+
+  // ── Event listeners ───────────────────────────────────────────────────────
 
   // Period toggle
   el.querySelectorAll('.period-toggle button').forEach(btn =>
@@ -239,11 +477,12 @@ function renderPage(el) {
     renderDashboard(el);
   });
 
+  // ── Charts ────────────────────────────────────────────────────────────────
+
   // Donut chart
   if (hasSpend) {
     const canvas = document.getElementById('donut-chart');
     if (canvas) {
-      if (donutChart) { donutChart.destroy(); donutChart = null; }
       const top = budget.filter(b => b.actual > 0).slice(0, 9);
       donutChart = new Chart(canvas, {
         type: 'doughnut',
@@ -284,5 +523,81 @@ function renderPage(el) {
       });
       canvas.style.cursor = 'pointer';
     }
+  }
+
+  // Spending Trend chart
+  if (trend.length >= 2) {
+    const canvas = document.getElementById('trend-chart');
+    if (canvas) {
+      trendChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: trend.map(([m]) => fmtMonth(m)),
+          datasets: [{
+            data: trend.map(([, v]) => v),
+            backgroundColor: '#6366f1',
+            borderRadius: 6,
+            hoverBackgroundColor: '#818cf8',
+          }],
+        },
+        options: {
+          ...miniBarOptions(),
+          responsive: true,
+          maintainAspectRatio: false,
+        },
+      });
+    }
+  }
+
+  // Weekly & Day-of-Week charts — lazy-rendered when details opens
+  const breakdownEl = el.querySelector('.breakdown-details');
+  if (breakdownEl) {
+    const makeBreakdownCharts = () => {
+      const weekCanvas = document.getElementById('week-chart');
+      if (weekCanvas && !weekChart && weekly.length) {
+        weekChart = new Chart(weekCanvas, {
+          type: 'bar',
+          data: {
+            labels: weekly.map(([l]) => l),
+            datasets: [{
+              data: weekly.map(([, v]) => v),
+              backgroundColor: '#10b981',
+              borderRadius: 5,
+              hoverBackgroundColor: '#34d399',
+            }],
+          },
+          options: { ...miniBarOptions(), responsive: true, maintainAspectRatio: false },
+        });
+      }
+
+      const dowCanvas = document.getElementById('dow-chart');
+      if (dowCanvas && !dowChart) {
+        dowChart = new Chart(dowCanvas, {
+          type: 'bar',
+          data: {
+            labels: dow.map(([l]) => l),
+            datasets: [{
+              data: dow.map(([, v]) => v),
+              backgroundColor: '#f59e0b',
+              borderRadius: 5,
+              hoverBackgroundColor: '#fbbf24',
+            }],
+          },
+          options: { ...miniBarOptions(), responsive: true, maintainAspectRatio: false },
+        });
+      }
+    };
+
+    // If details is already open (persists across renders), draw immediately
+    if (breakdownEl.open) makeBreakdownCharts();
+
+    breakdownEl.addEventListener('toggle', () => {
+      if (breakdownEl.open) {
+        makeBreakdownCharts();
+      } else {
+        if (weekChart) { weekChart.destroy(); weekChart = null; }
+        if (dowChart)  { dowChart.destroy();  dowChart  = null; }
+      }
+    });
   }
 }
