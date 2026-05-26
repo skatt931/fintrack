@@ -596,6 +596,21 @@ body {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
+.txn-merchant {
+  color: var(--text);
+  font-weight: 500;
+  opacity: 0.75;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.txn-merchant::before {
+  content: '·';
+  margin-right: 5px;
+  opacity: 0.5;
+}
+
 .txn-badge {
   font-size: 0.65rem;
   font-weight: 700;
@@ -1059,6 +1074,57 @@ body {
   font-size: 0.76rem;
   font-weight: 700;
   color: var(--primary-2);
+}
+
+/* ── By Merchant card (dashboard) ───────────────────────────────────────── */
+.merchant-card {
+  margin: 0 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 18px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.merchant-card:active {
+  background: var(--surface-2);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.mc-list {
+  margin: 10px 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.mc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.mc-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.mc-amount {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+
+/* ── Merchant filter chip (Records page) ────────────────────────────────── */
+.filter-clear-merchant {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
 }
 
 /* ── Spending Breakdown page ─────────────────────────────────────────────── */

@@ -7,6 +7,7 @@ const PAGE_TITLES = {
   transactions: 'Records',
   add:          'Add Expense',
   breakdown:    'Spending',
+  merchants:    'Merchants',
 };
 
 export function register(name, fn) {

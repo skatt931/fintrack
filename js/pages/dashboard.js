@@ -316,6 +316,36 @@ function renderPage(el) {
   const billingCats  = Object.entries(billingByCat).sort(([, a], [, b]) => b - a);
   const billingTotal = billingCats.reduce((s, [, v]) => s + v, 0);
 
+  // Merchant card — top merchants for the current billing period
+  const getMerchant = t => t.merchant || t.description || t.note || t.Merchant || '';
+  const billingByMerchant = {};
+  for (const t of billingTxns.filter(t => t.direction === 'expense')) {
+    const m = getMerchant(t);
+    if (!m) continue;
+    billingByMerchant[m] = (billingByMerchant[m] || 0) + parseAmount(t.report_amount);
+  }
+  const billingMerchants = Object.entries(billingByMerchant).sort(([, a], [, b]) => b - a);
+
+  const merchantCardHtml = billingMerchants.length > 0 ? (() => {
+    const rows = billingMerchants.slice(0, 4).map(([name, amt]) =>
+      '<div class="mc-row">'
+      + '<span class="mc-name">' + name + '</span>'
+      + '<span class="mc-amount">' + fmt(amt) + '</span>'
+      + '</div>'
+    ).join('');
+    const remaining = billingMerchants.length - 4;
+    const footer = remaining > 0
+      ? '<span class="spent-card-hint">+' + remaining + ' more</span>'
+      : '<span class="spent-card-hint">' + billingMerchants.length + ' merchant' + (billingMerchants.length === 1 ? '' : 's') + '</span>';
+    return '<div class="merchant-card" id="merchant-card">'
+      + '<div class="spent-card-label">BY MERCHANT · ' + fmtPeriod(billingPeriod).toUpperCase() + '</div>'
+      + '<div class="mc-list">' + rows + '</div>'
+      + '<div class="spent-card-footer">' + footer
+      + '<span class="spent-card-arrow">See all →</span>'
+      + '</div>'
+      + '</div>';
+  })() : '';
+
   // Pre-build spent card HTML (avoids deep template literal nesting)
   const spentCardHtml = billingTotal > 0 ? (() => {
     const segBar = billingCats.slice(0, 9).map(([, amt], i) => {
@@ -376,6 +406,9 @@ function renderPage(el) {
 
       <!-- Spent in billing period card -->
       ${spentCardHtml}
+
+      <!-- By Merchant card -->
+      ${merchantCardHtml}
 
       <!-- Needs-review banner -->
       ${summary.needsReview > 0 ? `
@@ -535,6 +568,11 @@ function renderPage(el) {
   // Spent card → breakdown page
   el.querySelector('#spent-card')?.addEventListener('click', () => {
     navigate('breakdown', { period: billingPeriod, mode: 'billing' });
+  });
+
+  // Merchant card → merchants page
+  el.querySelector('#merchant-card')?.addEventListener('click', () => {
+    navigate('merchants', { period: billingPeriod, mode: 'billing' });
   });
 
   // ── Charts ────────────────────────────────────────────────────────────────

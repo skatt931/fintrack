@@ -3,12 +3,13 @@ import { navigate } from '../router.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
-  data:          null,
-  filterPeriod:  null,   // null = current period
-  filterCat:     null,   // null = all categories
-  filterWeek:    null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
-  search:        '',
-  periodMode:    'billing',
+  data:           null,
+  filterPeriod:   null,   // null = current period
+  filterCat:      null,   // null = all categories
+  filterWeek:     null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
+  filterMerchant: null,   // null = all merchants
+  search:         '',
+  periodMode:     'billing',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,7 +60,11 @@ function getCategories(data) {
   return [...cats].sort();
 }
 
-function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null) {
+function getMerchant(t) {
+  return t.merchant || t.description || t.note || t.Merchant || '';
+}
+
+function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null) {
   let list = txns;
   if (filterPeriod) {
     const key = mode === 'billing' ? 'billing_period' : 'month';
@@ -71,6 +76,9 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
       if (!t.date) return false;
       return Math.ceil(new Date(t.date.slice(0, 10)).getDate() / 7) === filterWeek;
     });
+  }
+  if (filterMerchant) {
+    list = list.filter(t => getMerchant(t).toLowerCase() === filterMerchant.toLowerCase());
   }
   if (search) {
     const q = search.toLowerCase();
@@ -107,19 +115,21 @@ function groupByDate(txns) {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined;
+  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined;
 
   if (isDrillDown) {
     // Coming from dashboard — apply the pre-filters
-    if (params.category !== undefined) state.filterCat    = params.category;
-    if (params.period   !== undefined) state.filterPeriod = params.period;
-    if (params.weekNum  !== undefined) state.filterWeek   = params.weekNum;
+    if (params.category !== undefined) state.filterCat      = params.category;
+    if (params.period   !== undefined) state.filterPeriod   = params.period;
+    if (params.weekNum  !== undefined) state.filterWeek     = params.weekNum;
+    if (params.merchant !== undefined) state.filterMerchant = params.merchant;
   } else {
     // Direct nav (tab bar) — always reset filters so nothing is stale
-    state.filterCat    = null;
-    state.filterPeriod = null;
-    state.filterWeek   = null;
-    state.search       = '';
+    state.filterCat      = null;
+    state.filterPeriod   = null;
+    state.filterWeek     = null;
+    state.filterMerchant = null;
+    state.search         = '';
   }
 
   loadData().then(data => {
@@ -133,7 +143,7 @@ export function renderTransactions(el, params = {}) {
 }
 
 function renderPage(el) {
-  const { data, filterPeriod, filterCat, filterWeek, search, periodMode } = state;
+  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, search, periodMode } = state;
 
   // Build period list
   const periods = periodMode === 'billing'
@@ -142,11 +152,11 @@ function renderPage(el) {
 
   const cats = getCategories(data);
 
-  // Get all period txns (without week filter) to know which weeks exist
+  // Get all period txns (without week/merchant filter) to know which weeks exist
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
   const weeks      = getWeeksInPeriod(periodTxns);
 
-  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek);
+  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant);
   const groups = groupByDate(txns);
 
   el.innerHTML = `
@@ -172,6 +182,7 @@ function renderPage(el) {
           ${cats.map(c => `<option value="${c}" ${c === filterCat ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
         ${filterCat ? `<button class="filter-clear" id="clear-filter">✕ ${filterCat}</button>` : ''}
+        ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">✕ ${filterMerchant}</button>` : ''}
       </div>
 
       <!-- Week pills (shown when period has multiple weeks of data) -->
@@ -186,9 +197,10 @@ function renderPage(el) {
         ${groups.length ? groups.map(([day, items]) => `
           <div class="txn-date-header">${fmtDateGroup(day)}</div>
           ${items.map(t => {
-            const amt    = parseAmount(t.report_amount);
-            const isExp  = t.direction === 'expense';
-            const review = t.needs_review === 'TRUE' || t.needs_review === true;
+            const amt      = parseAmount(t.report_amount);
+            const isExp    = t.direction === 'expense';
+            const review   = t.needs_review === 'TRUE' || t.needs_review === true;
+            const merchant = t.merchant || t.description || t.note || t.Merchant || '';
             return `
             <div class="txn-item" data-row="${t._row}">
               <div class="txn-dot ${isExp ? 'expense' : 'income'}"></div>
@@ -199,6 +211,7 @@ function renderPage(el) {
                 </div>
                 <div class="txn-sub">
                   <span>${t.bank || '—'}</span>
+                  ${merchant ? '<span class="txn-merchant">' + merchant + '</span>' : ''}
                   ${review ? '<span class="txn-badge review">Review</span>' : ''}
                 </div>
               </div>
@@ -223,6 +236,10 @@ function renderPage(el) {
     state.filterCat = null;
     renderPage(el);
   });
+  document.getElementById('clear-merchant')?.addEventListener('click', () => {
+    state.filterMerchant = null;
+    renderPage(el);
+  });
 
   // Week pills
   el.querySelectorAll('.week-pill').forEach(btn =>
@@ -233,10 +250,11 @@ function renderPage(el) {
     })
   );
 
-  // Period change resets week filter
+  // Period change resets week + merchant filter
   document.getElementById('period-filter').addEventListener('change', e => {
-    state.filterPeriod = e.target.value;
-    state.filterWeek   = null;   // reset week when switching period
+    state.filterPeriod   = e.target.value;
+    state.filterWeek     = null;
+    state.filterMerchant = null;
     renderPage(el);
   });
 
