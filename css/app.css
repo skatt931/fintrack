@@ -830,6 +830,62 @@ body {
 .btn-submit:disabled { opacity: 0.6; cursor: default; }
 .btn-submit:not(:disabled):active { transform: scale(0.98); }
 
+/* ── Period progress (budget pacing) ─────────────────────────────────────── */
+.period-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+}
+.period-progress-bar {
+  flex: 1;
+  height: 5px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.period-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+.period-progress-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Week filter pills (Records page) ────────────────────────────────────── */
+.week-pills {
+  display: flex;
+  gap: 7px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.week-pills::-webkit-scrollbar { display: none; }
+.week-pill {
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border-radius: 99px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.week-pill.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+
 /* ── Savings rate card ───────────────────────────────────────────────────── */
 .card-savings {
   background: linear-gradient(145deg, rgba(124, 58, 237, 0.14) 0%, var(--surface) 60%);
@@ -837,19 +893,7 @@ body {
 }
 .card-savings .card-value { color: #a78bfa; }
 
-/* ── Budget pacing marker ────────────────────────────────────────────────── */
-.progress-bar { position: relative; overflow: visible; }
-.pacing-marker {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  background: rgba(255, 255, 255, 0.75);
-  border-radius: 1px;
-  pointer-events: none;
-  transform: translateX(-50%);
-  z-index: 2;
-}
+/* (pacing marker replaced by period-progress-row above budget list) */
 
 /* ── Spending Trend chart ────────────────────────────────────────────────── */
 .trend-wrap { height: 180px; }
@@ -913,24 +957,21 @@ body {
 }
 .breakdown-details[open] .breakdown-chevron { transform: rotate(180deg); }
 
-.breakdown-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px 12px;
-  padding: 0 16px 16px;
+.breakdown-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px 16px 16px;
 }
-@media (max-width: 340px) {
-  .breakdown-grid { grid-template-columns: 1fr; }
-}
+.breakdown-block { display: flex; flex-direction: column; gap: 8px; }
 .breakdown-label {
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  margin-bottom: 6px;
 }
-.breakdown-chart-wrap { position: relative; height: 150px; }
+.breakdown-chart-wrap { position: relative; height: 200px; }
 
 /* ── Recurring Expenses ──────────────────────────────────────────────────── */
 .recurring-item {
@@ -962,6 +1003,191 @@ body {
   color: #818cf8;
   white-space: nowrap;
 }
+
+/* ── Spent-in-period card (dashboard) ───────────────────────────────────── */
+.spent-card {
+  margin: 0 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 18px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.spent-card:active {
+  background: var(--surface-2);
+  border-color: rgba(124, 58, 237, 0.4);
+}
+.spent-card-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.spent-card-amount {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 14px;
+}
+.spent-card-seg-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  gap: 2px;
+  margin-bottom: 12px;
+}
+.seg-segment {
+  height: 100%;
+  min-width: 3px;
+}
+.spent-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.spent-card-hint {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+.spent-card-arrow {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary-2);
+}
+
+/* ── Spending Breakdown page ─────────────────────────────────────────────── */
+.bp-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 32px;
+}
+.bp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 16px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.bp-header {
+  padding: 12px 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.bp-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.bp-total-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.bp-total-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.bp-total {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.bp-cat-count {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding-bottom: 4px;
+}
+.bp-seg-bar {
+  display: flex;
+  height: 8px;
+  border-radius: 99px;
+  overflow: hidden;
+  gap: 2px;
+}
+.bp-list { flex: 1; }
+.bp-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s;
+}
+.bp-cat-row:active { background: var(--surface-2); }
+.bp-cat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.bp-cat-body { flex: 1; min-width: 0; }
+.bp-cat-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.bp-cat-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bp-cat-amount {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+  letter-spacing: -0.01em;
+}
+.bp-cat-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.bp-cat-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bp-cat-fill { height: 100%; border-radius: 99px; }
+.bp-cat-pct {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  width: 30px;
+  text-align: right;
+}
+.bp-row-arrow { color: var(--surface-3); flex-shrink: 0; }
 
 /* ── Error ───────────────────────────────────────────────────────────────── */
 .error-msg {

@@ -6,6 +6,12 @@ let trendChart = null;
 let weekChart  = null;
 let dowChart   = null;
 
+// Category colour palette — shared with breakdown.js
+const CAT_COLORS = [
+  '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
+  '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899',
+];
+
 // ── State ────────────────────────────────────────────────────────────────────
 
 const state = {
@@ -230,6 +236,16 @@ function miniBarOptions(labelCb) {
   };
 }
 
+// Format "2026-05" → "May 2026"
+function fmtPeriod(period) {
+  if (!period) return period;
+  if (/^\d{4}-\d{2}$/.test(period)) {
+    const [y, m] = period.split('-');
+    return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  }
+  return period;
+}
+
 // Format "2026-04" → "Apr '26"
 function fmtMonth(ym) {
   const [y, m] = ym.split('-');
@@ -287,6 +303,37 @@ function renderPage(el) {
   const dow         = computeDowSpending(txns);
   const recurring   = detectRecurring(data.transactions, mode);
 
+  // "Spent in [Period]" card — always uses billing period regardless of mode
+  const billingPeriods  = getAvailablePeriods(data, 'billing');
+  const billingPIdx     = getCurrentPeriodIndex(billingPeriods, data.transactions, 'billing');
+  const billingPeriod   = billingPeriods[billingPIdx] ?? period;
+  const billingTxns     = filterTxns(data, billingPeriod, 'billing');
+  const billingByCat    = {};
+  for (const t of billingTxns.filter(t => t.direction === 'expense')) {
+    const cat = t.category || 'Uncategorized';
+    billingByCat[cat] = (billingByCat[cat] || 0) + parseAmount(t.report_amount);
+  }
+  const billingCats  = Object.entries(billingByCat).sort(([, a], [, b]) => b - a);
+  const billingTotal = billingCats.reduce((s, [, v]) => s + v, 0);
+
+  // Pre-build spent card HTML (avoids deep template literal nesting)
+  const spentCardHtml = billingTotal > 0 ? (() => {
+    const segBar = billingCats.slice(0, 9).map(([, amt], i) => {
+      const pct = (amt / billingTotal) * 100;
+      return '<div class="seg-segment" style="width:' + pct.toFixed(1) + '%;background:' + CAT_COLORS[i] + '"></div>';
+    }).join('');
+    const catWord = billingCats.length === 1 ? 'category' : 'categories';
+    return '<div class="spent-card" id="spent-card">'
+      + '<div class="spent-card-label">SPENT IN ' + fmtPeriod(billingPeriod).toUpperCase() + '</div>'
+      + '<div class="spent-card-amount">' + fmt(billingTotal) + '</div>'
+      + '<div class="spent-card-seg-bar">' + segBar + '</div>'
+      + '<div class="spent-card-footer">'
+      + '<span class="spent-card-hint">' + billingCats.length + ' ' + catWord + '</span>'
+      + '<span class="spent-card-arrow">See breakdown →</span>'
+      + '</div>'
+      + '</div>';
+  })() : '';
+
   el.innerHTML = `
     <div class="dashboard">
 
@@ -327,6 +374,9 @@ function renderPage(el) {
         </div>
       </div>
 
+      <!-- Spent in billing period card -->
+      ${spentCardHtml}
+
       <!-- Needs-review banner -->
       ${summary.needsReview > 0 ? `
       <div class="review-banner">
@@ -338,10 +388,16 @@ function renderPage(el) {
       </div>` : ''}
 
       <!-- Budget progress -->
-      <div class="section-title">
-        Budget vs Actual
-        ${elapsedPct !== null ? `<span class="section-hint">· white line = ${Math.round(elapsedPct)}% period elapsed</span>` : ''}
-      </div>
+      <div class="section-title">Budget vs Actual</div>
+
+      ${elapsedPct !== null ? `
+      <div class="period-progress-row">
+        <div class="period-progress-bar">
+          <div class="period-progress-fill" style="width:${Math.min(100, elapsedPct)}%"></div>
+        </div>
+        <span class="period-progress-label">${Math.round(elapsedPct)}% of period elapsed</span>
+      </div>` : ''}
+
       <div class="budget-list">
         ${budget.length ? budget.map(b => {
           const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 100;
@@ -356,7 +412,6 @@ function renderPage(el) {
             </div>
             <div class="progress-bar">
               <div class="progress-fill ${cls}" style="width:${pct}%"></div>
-              ${elapsedPct !== null ? `<div class="pacing-marker" style="left:${elapsedPct}%"></div>` : ''}
             </div>
           </div>`;
         }).join('') : '<div class="budget-item muted-row">No expenses this period</div>'}
@@ -410,12 +465,12 @@ function renderPage(el) {
           <span class="section-title" style="margin-top:0">Weekly &amp; Day Breakdown</span>
           <svg class="breakdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
         </summary>
-        <div class="breakdown-grid">
-          <div>
-            <div class="breakdown-label">By Week</div>
+        <div class="breakdown-stack">
+          <div class="breakdown-block">
+            <div class="breakdown-label">By Week <span class="section-hint">tap a bar to filter Records</span></div>
             <div class="breakdown-chart-wrap"><canvas id="week-chart"></canvas></div>
           </div>
-          <div>
+          <div class="breakdown-block">
             <div class="breakdown-label">By Day of Week</div>
             <div class="breakdown-chart-wrap"><canvas id="dow-chart"></canvas></div>
           </div>
@@ -475,6 +530,11 @@ function renderPage(el) {
     clearCache();
     state.periods = [];
     renderDashboard(el);
+  });
+
+  // Spent card → breakdown page
+  el.querySelector('#spent-card')?.addEventListener('click', () => {
+    navigate('breakdown', { period: billingPeriod, mode: 'billing' });
   });
 
   // ── Charts ────────────────────────────────────────────────────────────────
@@ -566,8 +626,19 @@ function renderPage(el) {
               hoverBackgroundColor: '#34d399',
             }],
           },
-          options: { ...miniBarOptions(), responsive: true, maintainAspectRatio: false },
+          options: {
+            ...miniBarOptions(),
+            responsive: true,
+            maintainAspectRatio: false,
+            onClick: (evt, elements) => {
+              if (!elements.length) return;
+              const label   = weekly[elements[0].index][0]; // e.g. 'Wk 3'
+              const weekNum = parseInt(label.replace('Wk ', ''));
+              navigate('transactions', { period, weekNum });
+            },
+          },
         });
+        weekCanvas.style.cursor = 'pointer';
       }
 
       const dowCanvas = document.getElementById('dow-chart');

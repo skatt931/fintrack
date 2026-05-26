@@ -6,6 +6,7 @@ const PAGE_TITLES = {
   dashboard:    'Overview',
   transactions: 'Records',
   add:          'Add Expense',
+  breakdown:    'Spending',
 };
 
 export function register(name, fn) {

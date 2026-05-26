@@ -6,6 +6,7 @@ let state = {
   data:          null,
   filterPeriod:  null,   // null = current period
   filterCat:     null,   // null = all categories
+  filterWeek:    null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
   search:        '',
   periodMode:    'billing',
 };
@@ -58,13 +59,19 @@ function getCategories(data) {
   return [...cats].sort();
 }
 
-function filterTxns(txns, data, filterPeriod, filterCat, search, mode) {
+function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null) {
   let list = txns;
   if (filterPeriod) {
     const key = mode === 'billing' ? 'billing_period' : 'month';
     list = list.filter(t => t[key] === filterPeriod);
   }
   if (filterCat) list = list.filter(t => t.category === filterCat);
+  if (filterWeek !== null) {
+    list = list.filter(t => {
+      if (!t.date) return false;
+      return Math.ceil(new Date(t.date.slice(0, 10)).getDate() / 7) === filterWeek;
+    });
+  }
   if (search) {
     const q = search.toLowerCase();
     list = list.filter(t =>
@@ -74,6 +81,15 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode) {
     );
   }
   return [...list].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+}
+
+// Returns sorted week numbers (1-5) present in the given transaction list
+function getWeeksInPeriod(txns) {
+  const weeks = new Set(
+    txns.map(t => t.date ? Math.ceil(new Date(t.date.slice(0, 10)).getDate() / 7) : null)
+        .filter(Boolean)
+  );
+  return [...weeks].sort((a, b) => a - b);
 }
 
 function groupByDate(txns) {
@@ -91,16 +107,18 @@ function groupByDate(txns) {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const isDrillDown = params.category !== undefined || params.period !== undefined;
+  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined;
 
   if (isDrillDown) {
-    // Coming from pie chart — apply the pre-filters
+    // Coming from dashboard — apply the pre-filters
     if (params.category !== undefined) state.filterCat    = params.category;
     if (params.period   !== undefined) state.filterPeriod = params.period;
+    if (params.weekNum  !== undefined) state.filterWeek   = params.weekNum;
   } else {
     // Direct nav (tab bar) — always reset filters so nothing is stale
     state.filterCat    = null;
     state.filterPeriod = null;
+    state.filterWeek   = null;
     state.search       = '';
   }
 
@@ -115,16 +133,21 @@ export function renderTransactions(el, params = {}) {
 }
 
 function renderPage(el) {
-  const { data, filterPeriod, filterCat, search, periodMode } = state;
+  const { data, filterPeriod, filterCat, filterWeek, search, periodMode } = state;
 
   // Build period list
   const periods = periodMode === 'billing'
     ? [...new Set(data.salaryPeriods.map(p => p.period).filter(Boolean))].sort().reverse()
     : [...new Set(data.transactions.map(t => t.month).filter(Boolean))].sort().reverse();
 
-  const cats    = getCategories(data);
-  const txns    = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode);
-  const groups  = groupByDate(txns);
+  const cats = getCategories(data);
+
+  // Get all period txns (without week filter) to know which weeks exist
+  const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
+  const weeks      = getWeeksInPeriod(periodTxns);
+
+  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek);
+  const groups = groupByDate(txns);
 
   el.innerHTML = `
     <div class="txn-page">
@@ -150,6 +173,13 @@ function renderPage(el) {
         </select>
         ${filterCat ? `<button class="filter-clear" id="clear-filter">✕ ${filterCat}</button>` : ''}
       </div>
+
+      <!-- Week pills (shown when period has multiple weeks of data) -->
+      ${weeks.length > 1 ? `
+      <div class="week-pills">
+        <button class="week-pill ${filterWeek === null ? 'active' : ''}" data-week="all">All weeks</button>
+        ${weeks.map(w => `<button class="week-pill ${filterWeek === w ? 'active' : ''}" data-week="${w}">Week ${w}</button>`).join('')}
+      </div>` : ''}
 
       <!-- List -->
       <div class="txn-list">
@@ -185,16 +215,28 @@ function renderPage(el) {
     state.search = e.target.value;
     renderPage(el);
   });
-  document.getElementById('period-filter').addEventListener('change', e => {
-    state.filterPeriod = e.target.value;
-    renderPage(el);
-  });
   document.getElementById('cat-filter').addEventListener('change', e => {
     state.filterCat = e.target.value || null;
     renderPage(el);
   });
   document.getElementById('clear-filter')?.addEventListener('click', () => {
     state.filterCat = null;
+    renderPage(el);
+  });
+
+  // Week pills
+  el.querySelectorAll('.week-pill').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.week;
+      state.filterWeek = val === 'all' ? null : parseInt(val);
+      renderPage(el);
+    })
+  );
+
+  // Period change resets week filter
+  document.getElementById('period-filter').addEventListener('change', e => {
+    state.filterPeriod = e.target.value;
+    state.filterWeek   = null;   // reset week when switching period
     renderPage(el);
   });
 

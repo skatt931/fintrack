@@ -2,6 +2,7 @@ import { register, initRouter }       from './router.js';
 import { renderDashboard }             from './pages/dashboard.js';
 import { renderTransactions }          from './pages/transactions.js';
 import { renderAdd }                   from './pages/add.js';
+import { renderBreakdown }             from './pages/breakdown.js';
 import { getToken, requestToken, clearToken } from './auth.js';
 import { clearCache }                  from './api.js';
 
@@ -14,6 +15,7 @@ function startApp() {
   register('dashboard',    renderDashboard);
   register('transactions', renderTransactions);
   register('add',          renderAdd);
+  register('breakdown',    renderBreakdown);
   initRouter('dashboard');
 }
 
