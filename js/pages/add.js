@@ -12,10 +12,30 @@ function monthOf(dateStr) {
   return dateStr.slice(0, 7); // YYYY-MM
 }
 
+// Derive the month value in the same format the sheet already uses,
+// by looking at an existing transaction for that same YYYY-MM and copying
+// the value verbatim. Fallback: YYYY-MM string.
+function matchMonthFormat(dateVal, transactions) {
+  const ym = dateVal.slice(0, 7); // YYYY-MM to match
+  // First try: find a transaction whose month field already looks like YYYY-MM
+  const byYM = transactions.find(t => t.month && t.month.startsWith(ym));
+  if (byYM) return byYM.month; // exact value from the sheet
+  // Second try: detect format from any existing transaction
+  const sample = transactions.find(t => t.month);
+  if (!sample) return ym; // nothing to compare — use YYYY-MM
+  if (/^\d{4}-\d{2}$/.test(sample.month)) return ym; // sheet uses YYYY-MM
+  // Sheet uses some other format (e.g. "May 2026") — produce same format
+  const d = new Date(dateVal + 'T00:00:00');
+  if (/^[A-Za-z]+ \d{4}$/.test(sample.month)) {
+    return d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+  }
+  return ym; // unknown format — best-effort
+}
+
 function billingPeriodOf(dateStr, salaryPeriods) {
   if (!salaryPeriods?.length) return monthOf(dateStr);
   const sorted = [...salaryPeriods]
-    .filter(p => p.start_date)
+    .filter(p => p.start_date && p.period)
     .sort((a, b) => a.start_date.localeCompare(b.start_date));
   let result = sorted[0]?.period || monthOf(dateStr);
   for (const sp of sorted) {
@@ -135,11 +155,14 @@ function renderForm(el, data, params) {
     btn.textContent = 'Adding…';
     btn.disabled    = true;
 
-    const month   = monthOf(dateVal);
-    const period  = billingPeriodOf(dateVal, data.salaryPeriods);
+    const month    = matchMonthFormat(dateVal, data.transactions);
+    const period   = billingPeriodOf(dateVal, data.salaryPeriods);
     const dateTime = `${dateVal} 00:00:00`;
 
-    // Build fields map — covers known schema + note
+    // Build fields map.
+    // NOTE: report_amount is intentionally omitted — it is a computed/formula
+    // column in the sheet. Writing a static value here would overwrite the
+    // formula and corrupt filtering for all other transactions.
     const fields = {
       email_id:       'manual',
       date:           dateTime,
@@ -151,10 +174,9 @@ function renderForm(el, data, params) {
       month:          month,
       billing_period: period,
       needs_review:   'FALSE',
-      report_amount:  amountRaw,
     };
 
-    // If there are extra columns (e.g. merchant, comment), write note there
+    // Write note into whichever extra column the sheet uses for it
     if (note) {
       for (const h of data.txHeaders) {
         if (['merchant','comment','note','description','notes'].includes(h.toLowerCase())) {

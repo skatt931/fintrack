@@ -38,21 +38,34 @@ function fmtDateGroup(str) {
 }
 
 function getCurrentPeriod(data, mode) {
-  // Use the most recent period that has ACTUAL transactions — not just a row
-  // in Salary Periods. This handles the common case where the current billing
-  // period has barely started and almost all transactions are still in the
-  // previous period.
-  const key = mode === 'billing' ? 'billing_period' : 'month';
-  const periodsWithData = [...new Set(data.transactions.map(t => t[key]).filter(Boolean))].sort();
-  if (periodsWithData.length) return periodsWithData[periodsWithData.length - 1];
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-  // Fallback: most recent salary period
-  const sorted = data.salaryPeriods.map(p => p.period).filter(Boolean).sort();
-  if (sorted.length) return sorted[sorted.length - 1];
+  if (mode === 'billing') {
+    // Find which salary period TODAY falls into — same algorithm as
+    // billingPeriodOf() in add.js. This is immune to newly-added transactions
+    // that carry a future/wrong period label (e.g. after manual entry).
+    const sorted = [...data.salaryPeriods]
+      .filter(p => p.start_date && p.period)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date));
+    if (sorted.length) {
+      let result = sorted[0].period;
+      for (const sp of sorted) {
+        if (sp.start_date <= today) result = sp.period;
+        else break;
+      }
+      return result;
+    }
+    // No salary period data — fall back to most recent period with transactions
+    const bps = [...new Set(data.transactions.map(t => t.billing_period).filter(Boolean))].sort();
+    if (bps.length) return bps[bps.length - 1];
+  }
 
-  // Last resort: calendar month
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Calendar mode: use today's YYYY-MM
+  const thisMonth = today.slice(0, 7);
+  const months = [...new Set(data.transactions.map(t => t.month).filter(Boolean))].sort();
+  if (months.includes(thisMonth)) return thisMonth;
+  if (months.length) return months[months.length - 1];
+  return thisMonth;
 }
 
 function getCategories(data) {
@@ -62,6 +75,21 @@ function getCategories(data) {
 
 function getMerchant(t) {
   return t.merchant || t.description || t.note || t.Merchant || '';
+}
+
+// Parse a date string in several formats → ms timestamp for sorting.
+// Handles: "YYYY-MM-DD", "YYYY-MM-DD HH:MM:SS", "YYYY-MM-DDTHH:MM:SS",
+//          "DD/MM/YYYY", "DD/MM/YYYY HH:MM:SS".
+function parseDateMs(str) {
+  if (!str) return 0;
+  const s = str.trim();
+  // DD/MM/YYYY …
+  const euMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (euMatch) return new Date(`${euMatch[3]}-${euMatch[2]}-${euMatch[1]}`).getTime();
+  // ISO-ish: take the first 10 chars (YYYY-MM-DD) and parse
+  const iso = s.slice(0, 10);
+  const t = new Date(iso).getTime();
+  return isNaN(t) ? 0 : t;
 }
 
 function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null) {
@@ -74,7 +102,8 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
   if (filterWeek !== null) {
     list = list.filter(t => {
       if (!t.date) return false;
-      return Math.ceil(new Date(t.date.slice(0, 10)).getDate() / 7) === filterWeek;
+      const ms = parseDateMs(t.date);
+      return ms ? Math.ceil(new Date(ms).getDate() / 7) === filterWeek : false;
     });
   }
   if (filterMerchant) {
@@ -88,7 +117,8 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
       Object.values(t).some(v => typeof v === 'string' && v.toLowerCase().includes(q))
     );
   }
-  return [...list].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  // Sort newest-first using the date-format-aware parser
+  return [...list].sort((a, b) => parseDateMs(b.date) - parseDateMs(a.date));
 }
 
 // Returns sorted week numbers (1-5) present in the given transaction list
@@ -100,14 +130,24 @@ function getWeeksInPeriod(txns) {
   return [...weeks].sort((a, b) => a - b);
 }
 
+// Normalise any date string to YYYY-MM-DD for use as a group key
+function normDateKey(str) {
+  if (!str) return '';
+  const s = str.trim();
+  const eu = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (eu) return `${eu[3]}-${eu[2]}-${eu[1]}`;
+  return s.slice(0, 10); // already ISO or ISO-datetime
+}
+
 function groupByDate(txns) {
   const groups = {};
   for (const t of txns) {
-    const day = (t.date || '').slice(0, 10);
+    const day = normDateKey(t.date);
     if (!groups[day]) groups[day] = [];
     groups[day].push(t);
   }
-  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  // Sort by parsed timestamp descending so mixed date formats sort correctly
+  return Object.entries(groups).sort(([a], [b]) => parseDateMs(b) - parseDateMs(a));
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -278,12 +318,21 @@ function openEditSheet(txn, data, pageEl) {
     ])
   ].sort();
 
-  const amt     = parseAmount(txn.report_amount);
-  const isExp   = txn.direction === 'expense';
-  const review  = txn.needs_review === 'TRUE' || txn.needs_review === true;
+  const amt    = parseAmount(txn.report_amount);
+  const isExp  = txn.direction === 'expense';
+  const review = txn.needs_review === 'TRUE' || txn.needs_review === true;
 
-  // Extra fields (merchant, comment, description, note — whatever exists)
-  const knownFields = new Set(['email_id','date','bank','direction','amount','currency','category','month','billing_period','needs_review','report_amount','_row']);
+  // Detect the note/comment/merchant column from the sheet headers
+  const NOTE_COLS = ['comment', 'note', 'notes', 'description', 'merchant'];
+  const noteField = data.txHeaders.find(h => NOTE_COLS.includes(h.toLowerCase())) || null;
+  const noteValue = noteField ? (txn[noteField] || '') : '';
+
+  // Extra display-only fields — exclude the note field (it gets its own editable input)
+  const knownFields = new Set([
+    'email_id','date','bank','direction','amount','currency',
+    'category','month','billing_period','needs_review','report_amount','_row',
+    ...(noteField ? [noteField] : []),
+  ]);
   const extraFields = Object.entries(txn).filter(([k]) => !knownFields.has(k) && !k.startsWith('_') && txn[k]);
 
   const sheet = document.createElement('div');
@@ -317,6 +366,12 @@ function openEditSheet(txn, data, pageEl) {
             ${allCats.map(c => `<option value="${c}" ${c === txn.category ? 'selected' : ''}>${c}</option>`).join('')}
           </select>
         </div>
+
+        ${noteField !== null ? `
+        <div class="field-group">
+          <label class="field-label">Note / Comment</label>
+          <textarea class="field-textarea" id="edit-note" rows="2" placeholder="Merchant, description…">${noteValue}</textarea>
+        </div>` : ''}
 
         <div class="field-group">
           <label class="field-label">Needs review</label>
@@ -353,18 +408,20 @@ function openEditSheet(txn, data, pageEl) {
   sheet.querySelector('#sheet-save').addEventListener('click', async () => {
     const newCat    = sheet.querySelector('#edit-category').value;
     const newReview = sheet.querySelector('#edit-review').checked ? 'TRUE' : 'FALSE';
+    const newNote   = noteField ? (sheet.querySelector('#edit-note')?.value ?? '') : null;
     const btn       = sheet.querySelector('#sheet-save');
     btn.textContent = 'Saving…';
     btn.disabled    = true;
 
+    const updates = { category: newCat, needs_review: newReview };
+    if (noteField !== null) updates[noteField] = newNote;
+
     try {
-      await updateTransactionCells(txn._row, data.txHeaders, {
-        category:     newCat,
-        needs_review: newReview,
-      });
-      // Update local cache too
+      await updateTransactionCells(txn._row, data.txHeaders, updates);
+      // Mirror updates into the local cache so UI refreshes correctly
       txn.category     = newCat;
       txn.needs_review = newReview;
+      if (noteField !== null) txn[noteField] = newNote;
       close();
       renderPage(pageEl);
     } catch (err) {
