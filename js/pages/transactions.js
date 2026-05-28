@@ -4,14 +4,15 @@ import { categoryBadge } from '../categoryIcons.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
-  data:           null,
-  filterPeriod:   null,   // null = current period
-  filterCat:      null,   // null = all categories
-  filterWeek:     null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
-  filterMerchant: null,   // null = all merchants
-  search:         '',
-  periodMode:     'billing',
-  sortDir:        'desc', // 'desc' = newest first, 'asc' = oldest first
+  data:            null,
+  filterPeriod:    null,   // null = current period
+  filterCat:       null,   // null = all categories
+  filterWeek:      null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
+  filterMerchant:  null,   // null = all merchants
+  filterDirection: null,   // null = all, 'income', 'expense'
+  search:          '',
+  periodMode:      'billing',
+  sortDir:         'desc', // 'desc' = newest first, 'asc' = oldest first
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -94,12 +95,13 @@ function parseDateMs(str) {
   return isNaN(t) ? 0 : t;
 }
 
-function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null, sortDir = 'desc') {
+function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null, sortDir = 'desc', filterDirection = null) {
   let list = txns;
   if (filterPeriod) {
     const key = mode === 'billing' ? 'billing_period' : 'month';
     list = list.filter(t => t[key] === filterPeriod);
   }
+  if (filterDirection) list = list.filter(t => t.direction === filterDirection);
   if (filterCat) list = list.filter(t => t.category === filterCat);
   if (filterWeek !== null) {
     list = list.filter(t => {
@@ -163,21 +165,23 @@ function groupByDate(txns, sortDir = 'desc') {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined;
+  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined;
 
   if (isDrillDown) {
     // Coming from dashboard — apply the pre-filters
-    if (params.category !== undefined) state.filterCat      = params.category;
-    if (params.period   !== undefined) state.filterPeriod   = params.period;
-    if (params.weekNum  !== undefined) state.filterWeek     = params.weekNum;
-    if (params.merchant !== undefined) state.filterMerchant = params.merchant;
+    if (params.category  !== undefined) state.filterCat       = params.category;
+    if (params.period    !== undefined) state.filterPeriod    = params.period;
+    if (params.weekNum   !== undefined) state.filterWeek      = params.weekNum;
+    if (params.merchant  !== undefined) state.filterMerchant  = params.merchant;
+    if (params.direction !== undefined) state.filterDirection = params.direction;
   } else {
     // Direct nav (tab bar) — always reset filters so nothing is stale
-    state.filterCat      = null;
-    state.filterPeriod   = null;
-    state.filterWeek     = null;
-    state.filterMerchant = null;
-    state.search         = '';
+    state.filterCat       = null;
+    state.filterPeriod    = null;
+    state.filterWeek      = null;
+    state.filterMerchant  = null;
+    state.filterDirection = null;
+    state.search          = '';
   }
 
   loadData().then(data => {
@@ -191,7 +195,7 @@ export function renderTransactions(el, params = {}) {
 }
 
 function renderPage(el) {
-  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, search, periodMode, sortDir } = state;
+  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, filterDirection, search, periodMode, sortDir } = state;
 
   // Build period list
   const periods = periodMode === 'billing'
@@ -204,7 +208,7 @@ function renderPage(el) {
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
   const weeks      = getWeeksInPeriod(periodTxns);
 
-  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir);
+  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
   const groups = groupByDate(txns, sortDir);
 
   el.innerHTML = `
@@ -237,6 +241,7 @@ function renderPage(el) {
           <option value="">All categories</option>
           ${cats.map(c => `<option value="${c}" ${c === filterCat ? 'selected' : ''}>${c}</option>`).join('')}
         </select>
+        ${filterDirection ? `<button class="filter-clear filter-clear-dir" id="clear-direction">✕ ${filterDirection === 'income' ? 'Income only' : 'Expenses only'}</button>` : ''}
         ${filterCat ? `<button class="filter-clear" id="clear-filter">✕ ${filterCat}</button>` : ''}
         ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">✕ ${filterMerchant}</button>` : ''}
       </div>
@@ -290,6 +295,10 @@ function renderPage(el) {
   });
   document.getElementById('cat-filter').addEventListener('change', e => {
     state.filterCat = e.target.value || null;
+    renderPage(el);
+  });
+  document.getElementById('clear-direction')?.addEventListener('click', () => {
+    state.filterDirection = null;
     renderPage(el);
   });
   document.getElementById('clear-filter')?.addEventListener('click', () => {
@@ -428,10 +437,41 @@ function openEditSheet(txn, data, pageEl) {
   `;
 
   document.body.appendChild(sheet);
-  requestAnimationFrame(() => sheet.querySelector('.sheet-panel').classList.add('open'));
+  const panel = sheet.querySelector('.sheet-panel');
+  requestAnimationFrame(() => panel.classList.add('open'));
+
+  // ── Keep the sheet above the virtual keyboard ─────────────────────────────
+  // When the keyboard appears, window.visualViewport shrinks. By moving the
+  // overlay (position:fixed inset:0) so its height/top match the visual
+  // viewport, the panel (position:absolute bottom:0) automatically floats
+  // just above the keyboard instead of being hidden behind it.
+  const vv = window.visualViewport;
+  const onViewportChange = () => {
+    if (!vv) return;
+    sheet.style.top    = `${vv.offsetTop}px`;
+    sheet.style.height = `${vv.height}px`;
+  };
+  if (vv) {
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
+  }
+
+  // Also scroll the focused field into the panel's scrollable area
+  panel.querySelectorAll('input, textarea').forEach(field => {
+    field.addEventListener('focus', () => {
+      setTimeout(() => field.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
+    });
+  });
+  // ─────────────────────────────────────────────────────────────────────────
 
   const close = () => {
-    sheet.querySelector('.sheet-panel').classList.remove('open');
+    if (vv) {
+      vv.removeEventListener('resize', onViewportChange);
+      vv.removeEventListener('scroll', onViewportChange);
+    }
+    sheet.style.top    = '';
+    sheet.style.height = '';
+    panel.classList.remove('open');
     setTimeout(() => sheet.remove(), 280);
   };
 

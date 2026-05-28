@@ -383,13 +383,15 @@ function renderPage(el) {
 
       <!-- Summary cards -->
       <div class="summary-grid">
-        <div class="summary-card card-income">
+        <div class="summary-card card-income clickable-card" id="card-income">
           <div class="card-label">Income</div>
           <div class="card-value">${fmt(summary.income)}</div>
+          <div class="card-tap-hint">tap to see →</div>
         </div>
-        <div class="summary-card card-expense">
+        <div class="summary-card card-expense clickable-card" id="card-expense">
           <div class="card-label">Expenses</div>
           <div class="card-value">${fmt(summary.expenses)}</div>
+          <div class="card-tap-hint">tap to see →</div>
         </div>
         <div class="summary-card card-balance">
           <div class="card-label">Balance</div>
@@ -579,6 +581,16 @@ function renderPage(el) {
   // Merchant card → merchants page
   el.querySelector('#merchant-card')?.addEventListener('click', () => {
     navigate('merchants', { period: billingPeriod, mode: 'billing' });
+  });
+
+  // Income card → transactions filtered to income only
+  el.querySelector('#card-income')?.addEventListener('click', () => {
+    navigate('transactions', { direction: 'income', period });
+  });
+
+  // Expense card → transactions filtered to expenses only
+  el.querySelector('#card-expense')?.addEventListener('click', () => {
+    navigate('transactions', { direction: 'expense', period });
   });
 
   // Budget cards → transactions filtered by category + period
