@@ -1,5 +1,6 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
+import { getCategoryEmoji } from '../categoryIcons.js';
 
 const CAT_COLORS = [
   '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
@@ -79,9 +80,10 @@ function renderPage(el, merchants, total, period, mode) {
         ${merchants.length ? merchants.map(([name, amt], i) => {
           const pct   = total > 0 ? (amt / total) * 100 : 0;
           const color = CAT_COLORS[i % CAT_COLORS.length];
+          const emoji = getCategoryEmoji(name); // merchant name often matches a category keyword
           return `
           <div class="bp-cat-row mp-merchant-row" data-merchant="${name.replace(/"/g, '&quot;')}">
-            <div class="bp-cat-dot" style="background:${color}"></div>
+            <span class="cat-badge" style="width:36px;height:36px;font-size:18px;background:${color}22;border:1px solid ${color}55;">${emoji}</span>
             <div class="bp-cat-body">
               <div class="bp-cat-main">
                 <span class="bp-cat-name">${name}</span>

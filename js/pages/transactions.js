@@ -1,5 +1,6 @@
 import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
+import { categoryBadge } from '../categoryIcons.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
@@ -243,7 +244,7 @@ function renderPage(el) {
             const merchant = t.merchant || t.description || t.note || t.Merchant || '';
             return `
             <div class="txn-item" data-row="${t._row}">
-              <div class="txn-dot ${isExp ? 'expense' : 'income'}"></div>
+              ${categoryBadge(isExp ? t.category : 'salary', 'sm')}
               <div class="txn-body">
                 <div class="txn-main">
                   <span class="txn-category">${t.category || '—'}</span>
@@ -322,16 +323,25 @@ function openEditSheet(txn, data, pageEl) {
   const isExp  = txn.direction === 'expense';
   const review = txn.needs_review === 'TRUE' || txn.needs_review === true;
 
-  // Detect the note/comment/merchant column from the sheet headers
-  const NOTE_COLS = ['comment', 'note', 'notes', 'description', 'merchant'];
-  const noteField = data.txHeaders.find(h => NOTE_COLS.includes(h.toLowerCase())) || null;
-  const noteValue = noteField ? (txn[noteField] || '') : '';
+  // Merchant field — exactly the column named "merchant" (any case)
+  const merchantField = data.txHeaders.find(h => h.toLowerCase() === 'merchant') || null;
+  const merchantValue = merchantField ? (txn[merchantField] || '') : '';
 
-  // Extra display-only fields — exclude the note field (it gets its own editable input)
+  // User comment field — "user_comments", "user_comment", "user comments",
+  // "comment", "comments" — but NOT the merchant column
+  const COMMENT_COLS = ['user_comments','user_comment','user comments','comment','comments','note','notes'];
+  const commentField = data.txHeaders.find(h => {
+    const l = h.toLowerCase();
+    return COMMENT_COLS.includes(l) && l !== 'merchant';
+  }) || null;
+  const commentValue = commentField ? (txn[commentField] || '') : '';
+
+  // Extra display-only fields — everything not handled by a dedicated editor
   const knownFields = new Set([
     'email_id','date','bank','direction','amount','currency',
     'category','month','billing_period','needs_review','report_amount','_row',
-    ...(noteField ? [noteField] : []),
+    ...(merchantField ? [merchantField] : []),
+    ...(commentField  ? [commentField]  : []),
   ]);
   const extraFields = Object.entries(txn).filter(([k]) => !knownFields.has(k) && !k.startsWith('_') && txn[k]);
 
@@ -367,10 +377,18 @@ function openEditSheet(txn, data, pageEl) {
           </select>
         </div>
 
-        ${noteField !== null ? `
+        ${merchantField ? `
         <div class="field-group">
-          <label class="field-label">Note / Comment</label>
-          <textarea class="field-textarea" id="edit-note" rows="2" placeholder="Merchant, description…">${noteValue}</textarea>
+          <label class="field-label">Merchant</label>
+          <input class="field-input" id="edit-merchant" type="text"
+            placeholder="Where did you pay?" value="${merchantValue.replace(/"/g, '&quot;')}">
+        </div>` : ''}
+
+        ${commentField ? `
+        <div class="field-group">
+          <label class="field-label">User Comment</label>
+          <textarea class="field-textarea" id="edit-comment" rows="2"
+            placeholder="Add a personal note…">${commentValue}</textarea>
         </div>` : ''}
 
         <div class="field-group">
@@ -406,22 +424,24 @@ function openEditSheet(txn, data, pageEl) {
   });
 
   sheet.querySelector('#sheet-save').addEventListener('click', async () => {
-    const newCat    = sheet.querySelector('#edit-category').value;
-    const newReview = sheet.querySelector('#edit-review').checked ? 'TRUE' : 'FALSE';
-    const newNote   = noteField ? (sheet.querySelector('#edit-note')?.value ?? '') : null;
-    const btn       = sheet.querySelector('#sheet-save');
-    btn.textContent = 'Saving…';
-    btn.disabled    = true;
+    const newCat      = sheet.querySelector('#edit-category').value;
+    const newReview   = sheet.querySelector('#edit-review').checked ? 'TRUE' : 'FALSE';
+    const newMerchant = merchantField ? (sheet.querySelector('#edit-merchant')?.value ?? '') : null;
+    const newComment  = commentField  ? (sheet.querySelector('#edit-comment')?.value  ?? '') : null;
+    const btn         = sheet.querySelector('#sheet-save');
+    btn.textContent   = 'Saving…';
+    btn.disabled      = true;
 
     const updates = { category: newCat, needs_review: newReview };
-    if (noteField !== null) updates[noteField] = newNote;
+    if (merchantField) updates[merchantField] = newMerchant;
+    if (commentField)  updates[commentField]  = newComment;
 
     try {
       await updateTransactionCells(txn._row, data.txHeaders, updates);
-      // Mirror updates into the local cache so UI refreshes correctly
       txn.category     = newCat;
       txn.needs_review = newReview;
-      if (noteField !== null) txn[noteField] = newNote;
+      if (merchantField) txn[merchantField] = newMerchant;
+      if (commentField)  txn[commentField]  = newComment;
       close();
       renderPage(pageEl);
     } catch (err) {

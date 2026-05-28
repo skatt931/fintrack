@@ -1,5 +1,6 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
+import { getCategoryEmoji } from '../categoryIcons.js';
 
 // Same palette as the dashboard donut chart
 const CAT_COLORS = [
@@ -81,9 +82,10 @@ function renderPage(el, categories, total, period, mode) {
         ${categories.length ? categories.map(([cat, amt], i) => {
           const pct   = total > 0 ? (amt / total) * 100 : 0;
           const color = CAT_COLORS[i % CAT_COLORS.length];
+          const emoji = getCategoryEmoji(cat);
           return `
           <div class="bp-cat-row" data-cat="${cat.replace(/"/g, '&quot;')}">
-            <div class="bp-cat-dot" style="background:${color}"></div>
+            <span class="cat-badge" style="width:36px;height:36px;font-size:18px;background:${color}22;border:1px solid ${color}55;">${emoji}</span>
             <div class="bp-cat-body">
               <div class="bp-cat-main">
                 <span class="bp-cat-name">${cat}</span>

@@ -1,5 +1,6 @@
 import { loadData, clearCache } from '../api.js';
 import { navigate } from '../router.js';
+import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 
 let donutChart = null;
 let trendChart = null;
@@ -421,33 +422,38 @@ function renderPage(el) {
       </div>` : ''}
 
       <!-- Budget progress -->
-      <div class="section-title">Budget vs Actual</div>
+      <div class="budget-section-header">
+        <div class="section-title" style="margin-top:0">Budget vs Actual</div>
+        ${elapsedPct !== null ? `
+        <div class="period-progress-row">
+          <div class="period-progress-bar">
+            <div class="period-progress-fill" style="width:${Math.min(100, elapsedPct)}%"></div>
+          </div>
+          <span class="period-progress-label">${Math.round(elapsedPct)}% elapsed</span>
+        </div>` : ''}
+      </div>
 
-      ${elapsedPct !== null ? `
-      <div class="period-progress-row">
-        <div class="period-progress-bar">
-          <div class="period-progress-fill" style="width:${Math.min(100, elapsedPct)}%"></div>
-        </div>
-        <span class="period-progress-label">${Math.round(elapsedPct)}% of period elapsed</span>
-      </div>` : ''}
-
-      <div class="budget-list">
-        ${budget.length ? budget.map(b => {
+      <div class="budget-grid">
+        ${budget.length ? budget.map((b, i) => {
           const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 100;
           const cls = progressClass(b.actual, b.budget);
-          return `
-          <div class="budget-item">
-            <div class="budget-row">
-              <span class="budget-category">${b.category}</span>
-              <span class="budget-amounts">
-                <strong>${fmt(b.actual)}</strong>${b.budget ? ` / ${fmt(b.budget)}` : ''}
-              </span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill ${cls}" style="width:${pct}%"></div>
-            </div>
-          </div>`;
-        }).join('') : '<div class="budget-item muted-row">No expenses this period</div>'}
+          const color = CAT_COLORS[i % CAT_COLORS.length];
+          const emoji = getCategoryEmoji(b.category);
+          const iconColor = getCategoryColor(b.category);
+          return '<div class="budget-card" data-category="' + b.category + '" data-period="' + period + '" data-mode="' + mode + '">'
+            + '<div class="budget-card-top">'
+            + '<span class="budget-card-icon" style="background:' + iconColor + '22;border:1px solid ' + iconColor + '44">' + emoji + '</span>'
+            + '</div>'
+            + '<div class="budget-card-label">' + b.category + '</div>'
+            + '<div class="budget-card-amount">' + fmt(b.actual) + '</div>'
+            + (b.budget > 0
+                ? '<div class="budget-card-limit">of ' + fmt(b.budget) + '</div>'
+                : '<div class="budget-card-limit no-budget">no budget set</div>')
+            + '<div class="budget-card-track">'
+            + '<div class="budget-card-fill ' + cls + '" style="width:' + pct.toFixed(1) + '%;background:' + (cls === 'ok' ? 'var(--green)' : cls === 'warn' ? 'var(--yellow)' : 'var(--red)') + '"></div>'
+            + '</div>'
+            + '</div>';
+        }).join('') : '<div class="budget-empty">No expenses this period</div>'}
       </div>
 
       <!-- Spending breakdown donut -->
@@ -573,6 +579,16 @@ function renderPage(el) {
   // Merchant card → merchants page
   el.querySelector('#merchant-card')?.addEventListener('click', () => {
     navigate('merchants', { period: billingPeriod, mode: 'billing' });
+  });
+
+  // Budget cards → transactions filtered by category + period
+  el.querySelectorAll('.budget-card').forEach(card => {
+    card.addEventListener('click', () => {
+      navigate('transactions', {
+        category: card.dataset.category,
+        period:   card.dataset.period,
+      });
+    });
   });
 
   // ── Charts ────────────────────────────────────────────────────────────────

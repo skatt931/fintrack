@@ -337,14 +337,109 @@ body {
   margin-top: 4px;
 }
 
-/* ── Budget list ─────────────────────────────────────────────────────────── */
+/* ── Budget section header (title + elapsed row side by side) ────────────── */
+.budget-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.budget-section-header .period-progress-row {
+  /* inline next to the title — override default full-width layout */
+  flex: 1;
+  margin: 0;
+  max-width: 180px;
+}
+
+/* ── Budget cards grid ───────────────────────────────────────────────────── */
+.budget-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.budget-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+.budget-card:active { background: var(--surface-2); transform: scale(0.97); }
+
+.budget-card-top {
+  margin-bottom: 6px;
+}
+.budget-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+.budget-card-label {
+  font-size: 0.63rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.budget-card-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.1;
+  margin-top: 4px;
+}
+.budget-card-limit {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.budget-card-limit.no-budget { opacity: 0.4; font-style: italic; }
+
+.budget-card-track {
+  height: 3px;
+  background: var(--surface-3);
+  border-radius: 2px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+.budget-card-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.budget-empty {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  padding: 16px 0;
+  grid-column: 1 / -1;
+}
+
+/* Keep the old .budget-list/.budget-item styles for Period Comparison & Recurring sections */
 .budget-list {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 18px;
   overflow: hidden;
 }
-
 .budget-item {
   padding: 13px 16px;
   display: flex;
@@ -354,23 +449,14 @@ body {
 }
 .budget-item:last-child { border-bottom: none; }
 .budget-item.muted-row  { color: var(--text-muted); font-size: 0.84rem; padding: 16px; }
-
 .budget-row {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
   gap: 8px;
 }
-.budget-category {
-  font-size: 0.88rem;
-  font-weight: 600;
-}
-.budget-amounts {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+.budget-category { font-size: 0.88rem; font-weight: 600; }
+.budget-amounts { font-size: 0.76rem; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 .budget-amounts strong { color: var(--text); font-weight: 700; }
 
 .progress-bar {
@@ -564,14 +650,20 @@ body {
 }
 .txn-item:active { background: var(--surface-2); }
 
-.txn-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+/* txn-dot kept for backwards compat but hidden — replaced by cat-badge */
+.txn-dot { display: none; }
+
+/* ── Category icon badge ─────────────────────────────────────────────────── */
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   flex-shrink: 0;
+  line-height: 1;
+  /* width / height / font-size / background / border set inline per category */
 }
-.txn-dot.expense { background: var(--red); }
-.txn-dot.income  { background: var(--green); }
+/* Coloured bottom strip on budget cards reuses the progress bar colour */
 
 .txn-body { flex: 1; min-width: 0; }
 .txn-main {
