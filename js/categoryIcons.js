@@ -11,7 +11,7 @@
 const KEYWORD_MAP = [
   // ── Food & Drink ──────────────────────────────────────────────────────────
   ['coffee|café|kavárna|café|latte|espresso|cappucino',        '☕'],
-  ['restaurant|restaurace|dining|bistro|sushi|pizza|burger|pub|bar|ramen', '🍽️'],
+  ['restaurant|restaurace|dining|bistro|sushi|pizza|burger|\\bpub\\b|\\bbar\\b|ramen', '🍽️'],
   ['groceries|potraviny|supermarket|grocery|albert|billa|lidl|tesco|kaufland|penny|coop', '🛒'],
   ['food|jídlo|meal|lunch|dinner|breakfast|snack|bakery|pekárna', '🍔'],
   ['alcohol|beer|wine|pivo|víno',                               '🍺'],
@@ -19,13 +19,13 @@ const KEYWORD_MAP = [
   // ── Transport ─────────────────────────────────────────────────────────────
   ['taxi|uber|bolt|liftago|cabify|rideshare',                   '🚕'],
   ['metro|subway|underground|tram|tramvaj',                     '🚇'],
-  ['bus|autobus|coach',                                          '🚌'],
-  ['train|vlak|rail|railway|ido|cd\.cz|regiojet|leo express',   '🚆'],
+  ['\\bbus\\b|autobus|coach',                                    '🚌'],
+  ['\\btrain\\b|vlak|\\brail\\b|railway|ido|cd\\.cz|regiojet|leo express', '🚆'],
   ['flight|airplane|airline|ryanair|wizz|travel air',            '✈️'],
   ['fuel|benzin|petrol|gasoline|čerpací|pump|shell|orlen|mol',   '⛽'],
   ['parking|parkování|garage|park',                              '🅿️'],
   ['bike|kolo|cycling|cyklo|scooter|koloběžka',                  '🚲'],
-  ['car|auto|vehicle|doprava|transport|mobility',                 '🚗'],
+  ['\\bcar\\b|\\bauto\\b|vehicle|doprava|transport|mobility',     '🚗'],
 
   // ── Housing & Utilities ───────────────────────────────────────────────────
   ['rent|nájem|nájemné',                                         '🏠'],
@@ -110,8 +110,8 @@ const KEYWORD_MAP = [
 const COLOR_MAP = [
   ['coffee|café|kavárna',                                        '#92400e'],
   ['restaurant|restaurace|dining|food|jídlo|groceries|potraviny|supermarket|grocery', '#b45309'],
-  ['taxi|uber|bolt|car|auto|doprava|transport|fuel|benzin|parking|bike', '#1d4ed8'],
-  ['metro|bus|train|vlak|tram',                                  '#1e40af'],
+  ['taxi|uber|bolt|\\bcar\\b|\\bauto\\b|doprava|transport|fuel|benzin|parking|bike', '#1d4ed8'],
+  ['metro|\\bbus\\b|\\btrain\\b|vlak|tram',                      '#1e40af'],
   ['flight|airplane|travel|cestování|holiday|dovolená|hotel',    '#0369a1'],
   ['rent|nájem|home|house|domácnost|mortgage|furniture|cleaning|utilities', '#059669'],
   ['electricity|elektřina|water|voda|gas|plyn|internet|phone',   '#0891b2'],

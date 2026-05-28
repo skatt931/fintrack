@@ -11,6 +11,7 @@ let state = {
   filterMerchant: null,   // null = all merchants
   search:         '',
   periodMode:     'billing',
+  sortDir:        'desc', // 'desc' = newest first, 'asc' = oldest first
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -93,7 +94,7 @@ function parseDateMs(str) {
   return isNaN(t) ? 0 : t;
 }
 
-function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null) {
+function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null, sortDir = 'desc') {
   let list = txns;
   if (filterPeriod) {
     const key = mode === 'billing' ? 'billing_period' : 'month';
@@ -118,8 +119,11 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
       Object.values(t).some(v => typeof v === 'string' && v.toLowerCase().includes(q))
     );
   }
-  // Sort newest-first using the date-format-aware parser
-  return [...list].sort((a, b) => parseDateMs(b.date) - parseDateMs(a.date));
+  // Sort by date using the date-format-aware parser
+  return [...list].sort((a, b) => sortDir === 'asc'
+    ? parseDateMs(a.date) - parseDateMs(b.date)
+    : parseDateMs(b.date) - parseDateMs(a.date)
+  );
 }
 
 // Returns sorted week numbers (1-5) present in the given transaction list
@@ -140,15 +144,18 @@ function normDateKey(str) {
   return s.slice(0, 10); // already ISO or ISO-datetime
 }
 
-function groupByDate(txns) {
+function groupByDate(txns, sortDir = 'desc') {
   const groups = {};
   for (const t of txns) {
     const day = normDateKey(t.date);
     if (!groups[day]) groups[day] = [];
     groups[day].push(t);
   }
-  // Sort by parsed timestamp descending so mixed date formats sort correctly
-  return Object.entries(groups).sort(([a], [b]) => parseDateMs(b) - parseDateMs(a));
+  // Sort day groups by parsed timestamp, respecting sort direction
+  return Object.entries(groups).sort(([a], [b]) => sortDir === 'asc'
+    ? parseDateMs(a) - parseDateMs(b)
+    : parseDateMs(b) - parseDateMs(a)
+  );
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -184,7 +191,7 @@ export function renderTransactions(el, params = {}) {
 }
 
 function renderPage(el) {
-  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, search, periodMode } = state;
+  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, search, periodMode, sortDir } = state;
 
   // Build period list
   const periods = periodMode === 'billing'
@@ -197,13 +204,13 @@ function renderPage(el) {
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
   const weeks      = getWeeksInPeriod(periodTxns);
 
-  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant);
-  const groups = groupByDate(txns);
+  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir);
+  const groups = groupByDate(txns, sortDir);
 
   el.innerHTML = `
     <div class="txn-page">
 
-      <!-- Search -->
+      <!-- Search + Sort -->
       <div class="txn-search-wrap">
         <div class="txn-search">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -211,6 +218,14 @@ function renderPage(el) {
           </svg>
           <input id="txn-search" type="search" placeholder="Search…" value="${search}" autocomplete="off">
         </div>
+        <button class="sort-btn ${sortDir === 'asc' ? 'sort-asc' : ''}" id="sort-toggle" title="${sortDir === 'desc' ? 'Newest first — tap to reverse' : 'Oldest first — tap to reverse'}">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            ${sortDir === 'desc'
+              ? '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>'
+              : '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>'}
+          </svg>
+          <span>${sortDir === 'desc' ? 'New→Old' : 'Old→New'}</span>
+        </button>
       </div>
 
       <!-- Filters -->
@@ -265,6 +280,10 @@ function renderPage(el) {
   `;
 
   // Events
+  document.getElementById('sort-toggle').addEventListener('click', () => {
+    state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
+    renderPage(el);
+  });
   document.getElementById('txn-search').addEventListener('input', e => {
     state.search = e.target.value;
     renderPage(el);
