@@ -346,7 +346,7 @@ function renderPage(el) {
 
 // ── Edit bottom sheet ─────────────────────────────────────────────────────────
 
-export function openEditSheet(txn, data, pageEl) {
+export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
   const allCats = [
     ...new Set([
       ...data.budgets.map(b => b.Category).filter(Boolean),
@@ -509,7 +509,8 @@ export function openEditSheet(txn, data, pageEl) {
       if (merchantField) txn[merchantField] = newMerchant;
       if (commentField)  txn[commentField]  = newComment;
       close();
-      renderPage(pageEl);
+      if (onAfterSave) onAfterSave();
+      else renderPage(pageEl);
     } catch (err) {
       btn.textContent = 'Save changes';
       btn.disabled    = false;

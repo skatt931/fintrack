@@ -11,7 +11,7 @@ function parseAmount(val) {
 }
 
 function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(n) + ' Kč';
+  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
 }
 
 // Normalise any date string to YYYY-MM-DD
@@ -62,7 +62,7 @@ function renderPage(el, date, txns, data) {
   const prevDate = addDays(date, -1);
   const nextDate = addDays(date, 1);
   const isToday  = date === today;
-  const isFuture = date > today;
+  const isFuture = date >= today;
 
   const total = txns.reduce((s, t) => s + parseAmount(t.report_amount), 0);
 
@@ -155,7 +155,7 @@ function renderPage(el, date, txns, data) {
     item.addEventListener('click', () => {
       const row = parseInt(item.dataset.row);
       const txn = data.transactions.find(t => t._row === row);
-      if (txn) openEditSheet(txn, data, el);
+      if (txn) openEditSheet(txn, data, el, () => renderDaily(el, { date }));
     });
   });
 }
