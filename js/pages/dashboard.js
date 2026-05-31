@@ -802,3 +802,105 @@ function renderPage(el) {
     });
   }
 }
+
+// ── Budget edit bottom sheet ──────────────────────────────────────────────────
+
+function openBudgetEditSheet(b, data, el) {
+  const emoji        = getCategoryEmoji(b.category);
+  const hasExisting  = b._row !== undefined && b.budget > 0;
+  const isNew        = b._row === undefined;
+
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet-overlay';
+  sheet.innerHTML = `
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel" id="budget-sheet-panel">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <div class="sheet-title">${emoji} ${b.category}</div>
+          <div class="sheet-subtitle">Monthly budget${isNew ? ' · no budget set yet' : ''}</div>
+        </div>
+      </div>
+      <div class="sheet-fields">
+        <div class="field-group">
+          <label class="field-label" for="budget-amount-input">Budget amount (Kč)</label>
+          <input
+            id="budget-amount-input"
+            class="field-input"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="e.g. 5000"
+            value="${b.budget > 0 ? b.budget : ''}"
+          >
+        </div>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn-secondary" id="budget-sheet-cancel">Cancel</button>
+        ${hasExisting ? '<button class="btn-remove" id="budget-sheet-remove">Remove</button>' : ''}
+        <button class="btn-save" id="budget-sheet-save">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+
+  const panel     = sheet.querySelector('#budget-sheet-panel');
+  const input     = sheet.querySelector('#budget-amount-input');
+  const saveBtn   = sheet.querySelector('#budget-sheet-save');
+  const cancelBtn = sheet.querySelector('#budget-sheet-cancel');
+  const removeBtn = sheet.querySelector('#budget-sheet-remove');
+
+  requestAnimationFrame(() => panel.classList.add('open'));
+
+  const close = () => {
+    panel.classList.remove('open');
+    setTimeout(() => sheet.remove(), 280);
+  };
+
+  sheet.querySelector('.sheet-backdrop').addEventListener('click', close);
+  cancelBtn.addEventListener('click', close);
+
+  saveBtn.addEventListener('click', async () => {
+    const raw    = input.value.trim();
+    if (raw === '' && isNew) { close(); return; }
+    const amount = raw === '' ? '' : Math.round(parseFloat(raw) || 0);
+
+    saveBtn.textContent = 'Saving…';
+    saveBtn.disabled    = true;
+
+    try {
+      if (isNew) {
+        await appendBudgetRow(data.budgetHeaders, b.category, amount);
+      } else {
+        await updateBudgetAmount(b._row, data.budgetHeaders, amount);
+      }
+      close();
+      renderDashboard(el);
+    } catch (err) {
+      saveBtn.textContent = 'Save';
+      saveBtn.disabled    = false;
+      alert(`Failed to save: ${err.message}`);
+    }
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', async () => {
+      removeBtn.textContent = 'Removing…';
+      removeBtn.disabled    = true;
+
+      try {
+        await updateBudgetAmount(b._row, data.budgetHeaders, '');
+        close();
+        renderDashboard(el);
+      } catch (err) {
+        removeBtn.textContent = 'Remove';
+        removeBtn.disabled    = false;
+        alert(`Failed to remove: ${err.message}`);
+      }
+    });
+  }
+
+  // Auto-focus after animation
+  setTimeout(() => input.focus(), 300);
+}
