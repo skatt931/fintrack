@@ -1575,3 +1575,45 @@ body {
 }
 .txn-date-header--link:active { color: var(--text); }
 .txn-date-header--link:first-child { padding-top: 4px; }
+
+/* ── Budget edit button (pencil icon on card) ────────────────────────────────── */
+.budget-edit-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text-muted);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.budget-edit-btn:active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Remove budget button in edit sheet */
+.btn-remove {
+  flex: 1;
+  padding: 13px;
+  background: transparent;
+  border: 1px solid var(--red);
+  border-radius: 14px;
+  color: var(--red);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-remove:active  { background: rgba(244, 63, 94, 0.1); }
+.btn-remove:disabled { opacity: 0.6; cursor: default; }
