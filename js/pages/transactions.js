@@ -256,7 +256,7 @@ function renderPage(el) {
       <!-- List -->
       <div class="txn-list">
         ${groups.length ? groups.map(([day, items]) => `
-          <div class="txn-date-header">${fmtDateGroup(day)}</div>
+          <button class="txn-date-header txn-date-header--link" data-date="${day}">${fmtDateGroup(day)} →</button>
           ${items.map(t => {
             const amt      = parseAmount(t.report_amount);
             const isExp    = t.direction === 'expense';
@@ -333,6 +333,13 @@ function renderPage(el) {
       const row = parseInt(item.dataset.row);
       const txn = data.transactions.find(t => t._row === row);
       if (txn) openEditSheet(txn, data, el);
+    });
+  });
+
+  // Date header tap → daily view
+  el.querySelectorAll('.txn-date-header--link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigate('daily', { date: btn.dataset.date });
     });
   });
 }
