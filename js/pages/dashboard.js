@@ -1,4 +1,4 @@
-import { loadData, clearCache } from '../api.js';
+import { loadData, clearCache, updateBudgetAmount, appendBudgetRow } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 
@@ -86,6 +86,7 @@ function computeBudgetProgress(txns, budgets) {
       category: b.Category,
       budget:   parseAmount(b['Monthly Budget']),
       actual:   actualByCategory[b.Category] || 0,
+      _row:     b._row,
     }))
     .filter(b => b.budget > 0 || b.actual > 0)
     .sort((a, b) => (b.actual / (b.budget || Infinity)) - (a.actual / (a.budget || Infinity)));
@@ -488,6 +489,9 @@ function renderPage(el) {
           return '<div class="budget-card" data-category="' + b.category + '" data-period="' + period + '" data-mode="' + mode + '">'
             + '<div class="budget-card-top">'
             + '<span class="budget-card-icon" style="background:' + iconColor + '22;border:1px solid ' + iconColor + '44">' + emoji + '</span>'
+            + '<button class="budget-edit-btn" data-category="' + b.category + '" aria-label="Edit budget for ' + b.category + '">'
+            + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+            + '</button>'
             + '</div>'
             + '<div class="budget-card-label">' + b.category + '</div>'
             + '<div class="budget-card-amount">' + fmt(b.actual) + '</div>'
@@ -642,12 +646,24 @@ function renderPage(el) {
   });
 
   // Budget cards → transactions filtered by category + period
+  // (ignore clicks that originated on the pencil edit button)
   el.querySelectorAll('.budget-card').forEach(card => {
-    card.addEventListener('click', () => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('.budget-edit-btn')) return;
       navigate('transactions', {
         category: card.dataset.category,
         period:   card.dataset.period,
       });
+    });
+  });
+
+  // Pencil icon → budget edit sheet
+  el.querySelectorAll('.budget-edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const cat         = btn.dataset.category;
+      const budgetEntry = budget.find(b => b.category === cat);
+      if (budgetEntry) openBudgetEditSheet(budgetEntry, data, el);
     });
   });
 
