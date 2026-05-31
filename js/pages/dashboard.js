@@ -254,6 +254,15 @@ function fmtMonth(ym) {
   return `${name} '${y.slice(2)}`;
 }
 
+// Normalise any date string to YYYY-MM-DD (handles DD/MM/YYYY and ISO variants)
+function normDateKey(str) {
+  if (!str) return '';
+  const s = str.trim();
+  const eu = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (eu) return `${eu[3]}-${eu[2]}-${eu[1]}`;
+  return s.slice(0, 10);
+}
+
 // ── Render ───────────────────────────────────────────────────────────────────
 
 export function renderDashboard(el) {
@@ -303,6 +312,37 @@ function renderPage(el) {
   const weekly      = computeWeeklySpending(txns);
   const dow         = computeDowSpending(txns);
   const recurring   = detectRecurring(data.transactions, mode);
+
+  // Today strip — always uses today's real date, regardless of period view
+  const todayStr   = new Date().toISOString().slice(0, 10);
+  const todayTxns  = data.transactions.filter(t =>
+    t.direction === 'expense' && normDateKey(t.date) === todayStr
+  );
+  const todayTotal = todayTxns.reduce((s, t) => s + parseAmount(t.report_amount), 0);
+  const todayByCat = {};
+  for (const t of todayTxns) {
+    const cat = t.category || 'Uncategorized';
+    todayByCat[cat] = (todayByCat[cat] || 0) + parseAmount(t.report_amount);
+  }
+  const todayCats = Object.entries(todayByCat).sort(([, a], [, b]) => b - a).slice(0, 3);
+
+  const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  const todayStripHtml = `
+  <div class="today-strip" id="today-strip">
+    <div class="today-strip-left">
+      <span class="today-strip-label">TODAY</span>
+      <span class="today-strip-date">${todayLabel}</span>
+    </div>
+    <div class="today-strip-right">
+      ${todayTxns.length > 0
+        ? `<span class="today-strip-total">${fmt(todayTotal)}</span>
+           <div class="today-strip-cats">${todayCats.map(([cat]) => getCategoryEmoji(cat)).join(' ')}</div>`
+        : `<span class="today-strip-empty">Nothing spent</span>`
+      }
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>
+  </div>
+`;
 
   // "Spent in [Period]" card — always uses billing period regardless of mode
   const billingPeriods  = getAvailablePeriods(data, 'billing');
@@ -406,6 +446,9 @@ function renderPage(el) {
           </div>
         </div>
       </div>
+
+      <!-- Today strip -->
+      ${todayStripHtml}
 
       <!-- Spent in billing period card -->
       ${spentCardHtml}
@@ -581,6 +624,11 @@ function renderPage(el) {
   // Merchant card → merchants page
   el.querySelector('#merchant-card')?.addEventListener('click', () => {
     navigate('merchants', { period: billingPeriod, mode: 'billing' });
+  });
+
+  // Today strip → daily view for today
+  el.querySelector('#today-strip')?.addEventListener('click', () => {
+    navigate('daily', { date: new Date().toISOString().slice(0, 10) });
   });
 
   // Income card → transactions filtered to income only
