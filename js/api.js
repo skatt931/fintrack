@@ -145,12 +145,10 @@ export async function appendTransaction(txHeaders, fields) {
   clearCache();
 }
 
-// Update the Monthly Budget cell for an existing budget row.
+// Update the Monthly Budget cell (col B) for an existing budget row.
 // amount: number or '' (empty string clears / removes the budget).
-export async function updateBudgetAmount(row, budgetHeaders, amount) {
-  const idx = budgetHeaders.indexOf('Monthly Budget');
-  if (idx === -1) throw new Error('"Monthly Budget" column not found in Budgets sheet');
-
+// Col B is hardcoded per SHEETS_SCHEMA.md — Budgets sheet is always Category(A) | Monthly Budget(B) | all_categories(C).
+export async function updateBudgetAmount(row, amount) {
   await withAuth(async token => {
     const url  = `${BASE}/values:batchUpdate`;
     const resp = await fetch(url, {
@@ -158,7 +156,7 @@ export async function updateBudgetAmount(row, budgetHeaders, amount) {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         valueInputOption: 'USER_ENTERED',
-        data: [{ range: `${SHEETS.budgets}!${colLetter(idx)}${row}`, values: [[amount]] }],
+        data: [{ range: `${SHEETS.budgets}!B${row}`, values: [[amount]] }],
       }),
     });
     if (!resp.ok) {
@@ -170,21 +168,15 @@ export async function updateBudgetAmount(row, budgetHeaders, amount) {
   clearCache();
 }
 
-// Append a new row to the Budgets sheet for a previously-unbudgeted category.
-export async function appendBudgetRow(budgetHeaders, category, amount) {
-  if (!budgetHeaders.length) throw new Error('"Budgets" sheet appears empty — cannot append row');
-  const rowValues = budgetHeaders.map(h => {
-    if (h === 'Category')       return category;
-    if (h === 'Monthly Budget') return amount;
-    return '';
-  });
-
+// Append a new Category + Monthly Budget row to the Budgets sheet.
+// Only writes cols A and B — col C (all_categories) is managed by the sheet itself.
+export async function appendBudgetRow(category, amount) {
   await withAuth(async token => {
     const url  = `${BASE}/values/${encodeURIComponent(SHEETS.budgets)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
     const resp = await fetch(url, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ values: [rowValues] }),
+      body: JSON.stringify({ values: [[category, amount]] }),
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));

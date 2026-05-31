@@ -890,9 +890,9 @@ function openBudgetEditSheet(b, data, el) {
 
     try {
       if (isNew) {
-        await appendBudgetRow(data.budgetHeaders, b.category, amount);
+        await appendBudgetRow(b.category, amount);
       } else {
-        await updateBudgetAmount(b._row, data.budgetHeaders, amount);
+        await updateBudgetAmount(b._row, amount);
       }
       close();
       renderDashboard(el);
@@ -909,7 +909,7 @@ function openBudgetEditSheet(b, data, el) {
       removeBtn.disabled    = true;
 
       try {
-        await updateBudgetAmount(b._row, data.budgetHeaders, '');
+        await updateBudgetAmount(b._row, '');
         close();
         renderDashboard(el);
       } catch (err) {
