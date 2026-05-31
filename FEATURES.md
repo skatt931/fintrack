@@ -76,6 +76,10 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 - Progress bar colours: green (≤ 80 %), yellow (80–100 %), red (over budget)
 - Period-elapsed indicator: % of billing period elapsed shown next to section title
 - Tap any card → Records filtered to that category + period
+- **Pencil icon** (top-right of each card) → opens budget edit sheet
+  - Set or change the monthly budget amount for any category
+  - Categories with no budget row yet: saving appends a new row to the Budgets sheet
+  - **Remove budget** button clears the budget value (only shown when a budget exists)
 
 ### Spending Breakdown Donut Chart
 - Top 9 expense categories with colour-coded segments and legend
