@@ -172,6 +172,7 @@ export async function updateBudgetAmount(row, budgetHeaders, amount) {
 
 // Append a new row to the Budgets sheet for a previously-unbudgeted category.
 export async function appendBudgetRow(budgetHeaders, category, amount) {
+  if (!budgetHeaders.length) throw new Error('"Budgets" sheet appears empty — cannot append row');
   const rowValues = budgetHeaders.map(h => {
     if (h === 'Category')       return category;
     if (h === 'Monthly Budget') return amount;

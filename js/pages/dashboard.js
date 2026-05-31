@@ -853,7 +853,24 @@ function openBudgetEditSheet(b, data, el) {
 
   requestAnimationFrame(() => panel.classList.add('open'));
 
+  const vv = window.visualViewport;
+  const onViewportChange = () => {
+    if (!vv) return;
+    sheet.style.top    = `${vv.offsetTop}px`;
+    sheet.style.height = `${vv.height}px`;
+  };
+  if (vv) {
+    vv.addEventListener('resize', onViewportChange);
+    vv.addEventListener('scroll', onViewportChange);
+  }
+
   const close = () => {
+    if (vv) {
+      vv.removeEventListener('resize', onViewportChange);
+      vv.removeEventListener('scroll', onViewportChange);
+    }
+    sheet.style.top    = '';
+    sheet.style.height = '';
     panel.classList.remove('open');
     setTimeout(() => sheet.remove(), 280);
   };
@@ -862,9 +879,11 @@ function openBudgetEditSheet(b, data, el) {
   cancelBtn.addEventListener('click', close);
 
   saveBtn.addEventListener('click', async () => {
-    const raw    = input.value.trim();
-    if (raw === '' && isNew) { close(); return; }
-    const amount = raw === '' ? '' : Math.round(parseFloat(raw) || 0);
+    const raw          = input.value.trim();
+    const parsedAmount = Math.round(parseFloat(raw) || 0);
+    // Treat 0 or empty the same way: for new budgets, nothing to save; for existing, clear the cell
+    if (parsedAmount <= 0 && isNew) { close(); return; }
+    const amount = parsedAmount > 0 ? parsedAmount : '';
 
     saveBtn.textContent = 'Saving…';
     saveBtn.disabled    = true;
