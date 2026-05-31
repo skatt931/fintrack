@@ -339,7 +339,7 @@ function renderPage(el) {
 
 // ── Edit bottom sheet ─────────────────────────────────────────────────────────
 
-function openEditSheet(txn, data, pageEl) {
+export function openEditSheet(txn, data, pageEl) {
   const allCats = [
     ...new Set([
       ...data.budgets.map(b => b.Category).filter(Boolean),
