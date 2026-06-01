@@ -628,12 +628,12 @@ function renderPage(el) {
 
   // Income card → transactions filtered to income only
   el.querySelector('#card-income')?.addEventListener('click', () => {
-    navigate('transactions', { direction: 'income', period });
+    navigate('transactions', { direction: 'income', period, mode });
   });
 
   // Expense card → transactions filtered to expenses only
   el.querySelector('#card-expense')?.addEventListener('click', () => {
-    navigate('transactions', { direction: 'expense', period });
+    navigate('transactions', { direction: 'expense', period, mode });
   });
 
   // Budget cards → transactions filtered by category + period
@@ -644,6 +644,7 @@ function renderPage(el) {
       navigate('transactions', {
         category: card.dataset.category,
         period:   card.dataset.period,
+        mode:     card.dataset.mode,
       });
     });
   });
@@ -698,7 +699,7 @@ function renderPage(el) {
             if (!elements.length) return;
             const idx      = elements[0].index;
             const category = top[idx]?.category;
-            if (category) navigate('transactions', { category, period: periods[periodIndex] });
+            if (category) navigate('transactions', { category, period: periods[periodIndex], mode });
           },
         },
       });
@@ -755,7 +756,7 @@ function renderPage(el) {
               if (!elements.length) return;
               const label   = weekly[elements[0].index][0]; // e.g. 'Wk 3'
               const weekNum = parseInt(label.replace('Wk ', ''));
-              navigate('transactions', { period, weekNum });
+              navigate('transactions', { period, weekNum, mode });
             },
           },
         });

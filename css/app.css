@@ -597,7 +597,7 @@ body {
   border: none;
   outline: none;
   color: var(--text);
-  font-size: 0.9rem;
+  font-size: 1rem; /* ≥16px prevents iOS auto-zoom on focus */
 }
 .txn-search input::placeholder { color: var(--text-muted); }
 .sort-btn {

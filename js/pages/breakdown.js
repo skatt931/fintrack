@@ -110,7 +110,7 @@ function renderPage(el, categories, total, period, mode) {
 
   el.querySelectorAll('.bp-cat-row').forEach(row => {
     row.addEventListener('click', () => {
-      navigate('transactions', { category: row.dataset.cat, period });
+      navigate('transactions', { category: row.dataset.cat, period, mode });
     });
   });
 }

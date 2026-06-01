@@ -108,7 +108,7 @@ function renderPage(el, merchants, total, period, mode) {
 
   el.querySelectorAll('.mp-merchant-row').forEach(row => {
     row.addEventListener('click', () => {
-      navigate('transactions', { merchant: row.dataset.merchant, period });
+      navigate('transactions', { merchant: row.dataset.merchant, period, mode });
     });
   });
 }
