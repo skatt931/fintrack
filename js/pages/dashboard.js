@@ -66,9 +66,36 @@ function computeSummary(txns) {
   return { income, expenses, balance: income - expenses, needsReview };
 }
 
-function computeSavingsRate(summary) {
-  if (!summary.income) return null;
-  return ((summary.income - summary.expenses) / summary.income) * 100;
+// Days from today until the next salary period start date (next payday)
+function computeDaysUntilPayday(salaryPeriods) {
+  const today = new Date().toISOString().slice(0, 10);
+  const next  = [...salaryPeriods]
+    .filter(p => p.start_date && p.start_date > today)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0];
+  if (!next) return null;
+  return Math.ceil(
+    (new Date(next.start_date + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000
+  );
+}
+
+// Open reimbursements — transactions the user is owed money on
+function getOpenReimbursements(transactions) {
+  return transactions
+    .filter(t =>
+      t.link_role === 'original_expense' &&
+      t.reimbursement_status !== 'Settled' &&
+      parseAmount(t.expected_reimbursement) > 0
+    )
+    .map(t => ({
+      name:        t.merchant || t.description || t.user_comment || '(unknown)',
+      outstanding: Math.max(
+        0,
+        parseAmount(t.expected_reimbursement) - parseAmount(t.linked_reimbursement_total)
+      ),
+      status: t.reimbursement_status || 'Waiting',
+    }))
+    .filter(r => r.outstanding > 0)
+    .sort((a, b) => b.outstanding - a.outstanding);
 }
 
 function computeBudgetProgress(txns, budgets) {
@@ -296,11 +323,15 @@ function renderPage(el) {
     return;
   }
 
-  const period      = periods[periodIndex];
-  const txns        = filterTxns(data, period, mode);
-  const summary     = computeSummary(txns);
-  const savingsRate = computeSavingsRate(summary);
-  const budget      = computeBudgetProgress(txns, data.budgets);
+  const period            = periods[periodIndex];
+  const txns              = filterTxns(data, period, mode);
+  const summary           = computeSummary(txns);
+  const daysUntilPayday   = computeDaysUntilPayday(data.salaryPeriods);
+  const safeLimit         = (daysUntilPayday > 0 && summary.balance > 0)
+    ? summary.balance / daysUntilPayday
+    : null;
+  const budget            = computeBudgetProgress(txns, data.budgets);
+  const openReimbursements = getOpenReimbursements(data.transactions);
   const hasSpend    = budget.some(b => b.actual > 0);
 
   // Budget pacing — only meaningful in billing mode
@@ -432,10 +463,13 @@ function renderPage(el) {
           </div>
         </div>
         <div class="summary-card card-savings">
-          <div class="card-label">Savings Rate</div>
-          <div class="card-value ${savingsRate === null ? '' : savingsRate >= 0 ? 'positive' : 'negative'}">
-            ${savingsRate === null ? '—' : `${savingsRate >= 0 ? '' : '−'}${Math.abs(savingsRate).toFixed(1)}%`}
+          <div class="card-label">Safe Limit</div>
+          <div class="card-value ${safeLimit !== null ? 'positive' : ''}">
+            ${safeLimit !== null ? `${fmt(Math.round(safeLimit))} / day` : '—'}
           </div>
+          ${daysUntilPayday !== null
+            ? `<div class="card-tap-hint">payday in ${daysUntilPayday} day${daysUntilPayday === 1 ? '' : 's'}</div>`
+            : ''}
         </div>
       </div>
 
@@ -570,6 +604,20 @@ function renderPage(el) {
         </div>`).join('')}
       </div>` : ''}
 
+      <!-- Owes You -->
+      ${openReimbursements.length > 0 ? `
+      <div class="section-title">Owes You <span class="section-hint">${openReimbursements.length} open</span></div>
+      <div class="budget-list">
+        ${openReimbursements.map(r => `
+        <div class="owes-row" data-name="${encodeURIComponent(r.name)}">
+          <div class="owes-left">
+            <span class="budget-category">${r.name}</span>
+            <span class="owes-status owes-${r.status.toLowerCase()}">${r.status}</span>
+          </div>
+          <span class="owes-amount">${fmt(r.outstanding)}</span>
+        </div>`).join('')}
+      </div>` : ''}
+
       <!-- Refresh -->
       <button class="btn-refresh" id="refresh-btn">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -603,6 +651,13 @@ function renderPage(el) {
       renderPage(el);
     })
   );
+
+  // Owes You rows → Records searched by person name
+  el.querySelectorAll('.owes-row').forEach(row => {
+    row.addEventListener('click', () => {
+      navigate('transactions', { search: decodeURIComponent(row.dataset.name) });
+    });
+  });
 
   // Refresh
   el.querySelector('#refresh-btn')?.addEventListener('click', () => {

@@ -165,11 +165,12 @@ function groupByDate(txns, sortDir = 'desc') {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined || params.mode !== undefined;
+  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined || params.mode !== undefined || params.search !== undefined;
 
   if (isDrillDown) {
     // Coming from dashboard — apply the pre-filters
     if (params.mode      !== undefined) state.periodMode      = params.mode;
+    if (params.search    !== undefined) state.search          = params.search;
     if (params.category  !== undefined) state.filterCat       = params.category;
     if (params.period    !== undefined) state.filterPeriod    = params.period;
     if (params.weekNum   !== undefined) state.filterWeek      = params.weekNum;
