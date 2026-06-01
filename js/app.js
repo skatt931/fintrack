@@ -51,9 +51,29 @@ async function init() {
     show('signin-screen');
   }
 
-  // Register service worker
+  // Register service worker + auto-reload when a new version activates
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      // When a new SW finishes installing, tell it to take over immediately
+      reg.addEventListener('updatefound', () => {
+        const newSW = reg.installing;
+        newSW.addEventListener('statechange', () => {
+          if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+            // A previous SW was in control — new version is ready
+            newSW.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(() => {});
+
+    // When the SW hands over control (new version activated), reload the page
+    // so the user always runs the latest code without any manual steps
+    let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      window.location.reload();
+    });
   }
 }
 

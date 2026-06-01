@@ -1,8 +1,13 @@
-const CACHE = 'finance-v14';
+const CACHE = 'finance-v15';
 
 // Minimal install — just activate immediately, no precaching
 // (precaching with absolute paths breaks on GitHub Pages subdirectory deployments)
 self.addEventListener('install', () => self.skipWaiting());
+
+// Allow the app page to tell a waiting SW to take over immediately
+self.addEventListener('message', (e) => {
+  if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
