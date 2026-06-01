@@ -9,6 +9,7 @@ const PAGE_TITLES = {
   breakdown:    'Spending',
   merchants:    'Merchants',
   daily:        'Daily View',
+  settings:     'Settings',
 };
 
 export function register(name, fn) {

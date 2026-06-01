@@ -23,14 +23,14 @@
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; min-height: 100dvh; overflow: hidden; }
+#app { height: 100%; min-height: 100dvh; position: relative; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
 }
-#app { height: 100%; position: relative; }
 
 /* ── Screens ─────────────────────────────────────────────────────────────── */
 .screen          { position: absolute; inset: 0; }
@@ -1682,3 +1682,143 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   color: var(--green);
   flex-shrink: 0;
 }
+
+/* ── Menu action sheet ───────────────────────────────────────────────────── */
+.menu-action {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 4px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.menu-action:last-child { border-bottom: none; }
+.menu-action:active { background: var(--surface-2); }
+.menu-action svg { color: var(--text-muted); flex-shrink: 0; }
+.menu-action-danger { color: var(--red); }
+.menu-action-danger svg { color: var(--red); }
+
+/* ── Settings page ───────────────────────────────────────────────────────── */
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 32px;
+}
+.settings-intro {
+  padding: 8px 20px 16px;
+}
+.settings-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.settings-subtitle {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.settings-list {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-row-dim { opacity: 0.45; }
+.settings-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.settings-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.settings-arrows {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.arr-btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.arr-btn:active  { background: var(--surface-3); color: var(--text); }
+.arr-btn:disabled { opacity: 0.25; pointer-events: none; }
+
+/* iOS-style toggle switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 13px;
+  background: var(--surface-3);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.2s, background 0.2s;
+}
+.toggle-switch input:checked + .toggle-track { background: var(--primary-2); }
+.toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.settings-reset-btn {
+  margin: 20px 16px 0;
+  padding: 13px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.settings-reset-btn:active { background: var(--surface-2); }

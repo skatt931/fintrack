@@ -1,6 +1,7 @@
 import { loadData, clearCache, updateBudgetAmount, appendBudgetRow } from '../api.js';
-import { navigate } from '../router.js';
+import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
+import { loadSections }                       from '../settings.js';
 
 let donutChart = null;
 let trendChart = null;
@@ -265,6 +266,14 @@ function miniBarOptions(labelCb) {
   };
 }
 
+// Render only the visible sections in the user-defined order
+function buildSections(htmlMap, sections) {
+  return sections
+    .filter(s => s.visible)
+    .map(s => htmlMap[s.id] || '')
+    .join('');
+}
+
 // Format "2026-05" → "May 2026"
 function fmtPeriod(period) {
   if (!period) return period;
@@ -411,7 +420,7 @@ function renderPage(el) {
   })() : '';
 
   // Pre-build spent card HTML (avoids deep template literal nesting)
-  const spentCardHtml = spentTotal > 0 ? (() => {
+  const spentCardHtmlInner = spentTotal > 0 ? (() => {
     const segBar = spentCats.slice(0, 9).map(([, amt], i) => {
       const pct = (amt / spentTotal) * 100;
       return '<div class="seg-segment" style="width:' + pct.toFixed(1) + '%;background:' + CAT_COLORS[i] + '"></div>';
@@ -427,6 +436,126 @@ function renderPage(el) {
       + '</div>'
       + '</div>';
   })() : '';
+
+  // ── Pre-build all configurable section HTML ───────────────────────────────
+
+  const budgetSectionHtml = `
+    <div class="budget-section-header">
+      <div class="section-title" style="margin-top:0">Budget vs Actual</div>
+      ${elapsedPct !== null ? `
+      <div class="period-progress-row">
+        <div class="period-progress-bar">
+          <div class="period-progress-fill" style="width:${Math.min(100, elapsedPct)}%"></div>
+        </div>
+        <span class="period-progress-label">${Math.round(elapsedPct)}% elapsed</span>
+      </div>` : ''}
+    </div>
+    <div class="budget-grid">
+      ${budget.length ? budget.map((b, i) => {
+        const pct      = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 100;
+        const cls      = progressClass(b.actual, b.budget);
+        const iconColor = getCategoryColor(b.category);
+        const emoji    = getCategoryEmoji(b.category);
+        return '<div class="budget-card" data-category="' + b.category + '" data-period="' + period + '" data-mode="' + mode + '">'
+          + '<div class="budget-card-top">'
+          + '<span class="budget-card-icon" style="background:' + iconColor + '22;border:1px solid ' + iconColor + '44">' + emoji + '</span>'
+          + '<button class="budget-edit-btn" data-category="' + b.category + '" aria-label="Edit budget for ' + b.category + '">'
+          + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
+          + '</button></div>'
+          + '<div class="budget-card-label">' + b.category + '</div>'
+          + '<div class="budget-card-amount">' + fmt(b.actual) + '</div>'
+          + (b.budget > 0
+              ? '<div class="budget-card-limit">of ' + fmt(b.budget) + '</div>'
+              : '<div class="budget-card-limit no-budget">no budget set</div>')
+          + '<div class="budget-card-track">'
+          + '<div class="budget-card-fill ' + cls + '" style="width:' + pct.toFixed(1) + '%;background:'
+          + (cls === 'ok' ? 'var(--green)' : cls === 'warn' ? 'var(--yellow)' : 'var(--red)') + '"></div>'
+          + '</div></div>';
+      }).join('') : '<div class="budget-empty">No expenses this period</div>'}
+    </div>`;
+
+  const donutSectionHtml = hasSpend ? `
+    <div class="section-title">Spending Breakdown <span class="section-hint">tap a slice to see records</span></div>
+    <div class="chart-wrap"><div class="chart-container"><canvas id="donut-chart"></canvas></div></div>` : '';
+
+  const trendSectionHtml = trend.length >= 2 ? `
+    <div class="section-title">Spending Trend <span class="section-hint">last ${trend.length} months</span></div>
+    <div class="chart-wrap"><div class="chart-container trend-wrap"><canvas id="trend-chart"></canvas></div></div>` : '';
+
+  const comparisonSectionHtml = comparison ? `
+    <div class="section-title">vs Previous Period <span class="section-hint">${comparison.prevPeriod}</span></div>
+    <div class="budget-list">
+      ${comparison.rows.map(r => {
+        const arrow    = r.pct === null ? '' : r.pct > 0 ? '↑' : r.pct < 0 ? '↓' : '=';
+        const badgeCls = r.pct === null ? 'new' : r.pct > 0 ? 'up' : r.pct < 0 ? 'down' : 'neutral';
+        const pctLabel = r.pct === null ? 'new' : r.pct === 0 ? '= same' : `${arrow} ${Math.abs(r.pct).toFixed(0)}%`;
+        return `<div class="comparison-row">
+          <div class="comparison-left">
+            <span class="budget-category">${r.category}</span>
+            <span class="comparison-amounts">${fmt(r.current)}${r.prev ? ` · was ${fmt(r.prev)}` : ''}</span>
+          </div>
+          <span class="comparison-badge ${badgeCls}">${pctLabel}</span>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  const weeklySectionHtml = (weekly.length > 0 || dow.some(([, v]) => v > 0)) ? `
+    <details class="breakdown-details">
+      <summary class="breakdown-summary">
+        <span class="section-title" style="margin-top:0">Weekly &amp; Day Breakdown</span>
+        <svg class="breakdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div class="breakdown-stack">
+        <div class="breakdown-block">
+          <div class="breakdown-label">By Week <span class="section-hint">tap a bar to filter Records</span></div>
+          <div class="breakdown-chart-wrap"><canvas id="week-chart"></canvas></div>
+        </div>
+        <div class="breakdown-block">
+          <div class="breakdown-label">By Day of Week</div>
+          <div class="breakdown-chart-wrap"><canvas id="dow-chart"></canvas></div>
+        </div>
+      </div>
+    </details>` : '';
+
+  const recurringSectionHtml = recurring.length > 0 ? `
+    <div class="section-title">Recurring Expenses <span class="section-hint">≥2 periods</span></div>
+    <div class="budget-list">
+      ${recurring.map(r => `
+      <div class="recurring-item">
+        <div class="recurring-left">
+          <span class="budget-category">${r.category}</span>
+          <span class="recurring-avg">avg ${fmt(r.avgAmount)}</span>
+        </div>
+        <span class="recurring-badge">× ${r.periodCount}</span>
+      </div>`).join('')}
+    </div>` : '';
+
+  const owesSectionHtml = openReimbursements.length > 0 ? `
+    <div class="section-title">Owes You <span class="section-hint">${openReimbursements.length} open</span></div>
+    <div class="budget-list">
+      ${openReimbursements.map(r => `
+      <div class="owes-row" data-name="${encodeURIComponent(r.name)}">
+        <div class="owes-left">
+          <span class="budget-category">${r.name}</span>
+          <span class="owes-status owes-${r.status.toLowerCase()}">${r.status}</span>
+        </div>
+        <span class="owes-amount">${fmt(r.outstanding)}</span>
+      </div>`).join('')}
+    </div>` : '';
+
+  // Map of section id → HTML; order and visibility controlled by settings
+  const sectionHtmlMap = {
+    today:      todayStripHtml,
+    spent:      spentCardHtmlInner,
+    merchant:   merchantCardHtml,
+    budget:     budgetSectionHtml,
+    donut:      donutSectionHtml,
+    trend:      trendSectionHtml,
+    comparison: comparisonSectionHtml,
+    weekly:     weeklySectionHtml,
+    recurring:  recurringSectionHtml,
+    owes:       owesSectionHtml,
+  };
 
   el.innerHTML = `
     <div class="dashboard">
@@ -473,16 +602,7 @@ function renderPage(el) {
         </div>
       </div>
 
-      <!-- Today strip -->
-      ${todayStripHtml}
-
-      <!-- Spent in billing period card -->
-      ${spentCardHtml}
-
-      <!-- By Merchant card -->
-      ${merchantCardHtml}
-
-      <!-- Needs-review banner -->
+      <!-- Needs-review banner (always shown) -->
       ${summary.needsReview > 0 ? `
       <div class="review-banner">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" flex-shrink="0">
@@ -492,131 +612,8 @@ function renderPage(el) {
         <span>${summary.needsReview} transaction${summary.needsReview > 1 ? 's' : ''} need${summary.needsReview === 1 ? 's' : ''} review</span>
       </div>` : ''}
 
-      <!-- Budget progress -->
-      <div class="budget-section-header">
-        <div class="section-title" style="margin-top:0">Budget vs Actual</div>
-        ${elapsedPct !== null ? `
-        <div class="period-progress-row">
-          <div class="period-progress-bar">
-            <div class="period-progress-fill" style="width:${Math.min(100, elapsedPct)}%"></div>
-          </div>
-          <span class="period-progress-label">${Math.round(elapsedPct)}% elapsed</span>
-        </div>` : ''}
-      </div>
-
-      <div class="budget-grid">
-        ${budget.length ? budget.map((b, i) => {
-          const pct = b.budget > 0 ? Math.min(100, (b.actual / b.budget) * 100) : 100;
-          const cls = progressClass(b.actual, b.budget);
-          const color = CAT_COLORS[i % CAT_COLORS.length];
-          const emoji = getCategoryEmoji(b.category);
-          const iconColor = getCategoryColor(b.category);
-          return '<div class="budget-card" data-category="' + b.category + '" data-period="' + period + '" data-mode="' + mode + '">'
-            + '<div class="budget-card-top">'
-            + '<span class="budget-card-icon" style="background:' + iconColor + '22;border:1px solid ' + iconColor + '44">' + emoji + '</span>'
-            + '<button class="budget-edit-btn" data-category="' + b.category + '" aria-label="Edit budget for ' + b.category + '">'
-            + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'
-            + '</button>'
-            + '</div>'
-            + '<div class="budget-card-label">' + b.category + '</div>'
-            + '<div class="budget-card-amount">' + fmt(b.actual) + '</div>'
-            + (b.budget > 0
-                ? '<div class="budget-card-limit">of ' + fmt(b.budget) + '</div>'
-                : '<div class="budget-card-limit no-budget">no budget set</div>')
-            + '<div class="budget-card-track">'
-            + '<div class="budget-card-fill ' + cls + '" style="width:' + pct.toFixed(1) + '%;background:' + (cls === 'ok' ? 'var(--green)' : cls === 'warn' ? 'var(--yellow)' : 'var(--red)') + '"></div>'
-            + '</div>'
-            + '</div>';
-        }).join('') : '<div class="budget-empty">No expenses this period</div>'}
-      </div>
-
-      <!-- Spending breakdown donut -->
-      ${hasSpend ? `
-      <div class="section-title">Spending Breakdown <span class="section-hint">tap a slice to see records</span></div>
-      <div class="chart-wrap">
-        <div class="chart-container">
-          <canvas id="donut-chart"></canvas>
-        </div>
-      </div>` : ''}
-
-      <!-- Spending Trend -->
-      ${trend.length >= 2 ? `
-      <div class="section-title">Spending Trend <span class="section-hint">last ${trend.length} months</span></div>
-      <div class="chart-wrap">
-        <div class="chart-container trend-wrap">
-          <canvas id="trend-chart"></canvas>
-        </div>
-      </div>` : ''}
-
-      <!-- Period Comparison -->
-      ${comparison ? `
-      <div class="section-title">vs Previous Period <span class="section-hint">${comparison.prevPeriod}</span></div>
-      <div class="budget-list">
-        ${comparison.rows.map(r => {
-          const arrow = r.pct === null ? '' : r.pct > 0 ? '↑' : r.pct < 0 ? '↓' : '=';
-          const badgeCls = r.pct === null ? 'new' : r.pct > 0 ? 'up' : r.pct < 0 ? 'down' : 'neutral';
-          const pctLabel = r.pct === null
-            ? 'new'
-            : r.pct === 0
-              ? '= same'
-              : `${arrow} ${Math.abs(r.pct).toFixed(0)}%`;
-          return `
-          <div class="comparison-row">
-            <div class="comparison-left">
-              <span class="budget-category">${r.category}</span>
-              <span class="comparison-amounts">${fmt(r.current)}${r.prev ? ` · was ${fmt(r.prev)}` : ''}</span>
-            </div>
-            <span class="comparison-badge ${badgeCls}">${pctLabel}</span>
-          </div>`;
-        }).join('')}
-      </div>` : ''}
-
-      <!-- Weekly & Day-of-Week Breakdown -->
-      ${(weekly.length > 0 || dow.some(([, v]) => v > 0)) ? `
-      <details class="breakdown-details">
-        <summary class="breakdown-summary">
-          <span class="section-title" style="margin-top:0">Weekly &amp; Day Breakdown</span>
-          <svg class="breakdown-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-        </summary>
-        <div class="breakdown-stack">
-          <div class="breakdown-block">
-            <div class="breakdown-label">By Week <span class="section-hint">tap a bar to filter Records</span></div>
-            <div class="breakdown-chart-wrap"><canvas id="week-chart"></canvas></div>
-          </div>
-          <div class="breakdown-block">
-            <div class="breakdown-label">By Day of Week</div>
-            <div class="breakdown-chart-wrap"><canvas id="dow-chart"></canvas></div>
-          </div>
-        </div>
-      </details>` : ''}
-
-      <!-- Recurring Expenses -->
-      ${recurring.length > 0 ? `
-      <div class="section-title">Recurring Expenses <span class="section-hint">≥2 periods</span></div>
-      <div class="budget-list">
-        ${recurring.map(r => `
-        <div class="recurring-item">
-          <div class="recurring-left">
-            <span class="budget-category">${r.category}</span>
-            <span class="recurring-avg">avg ${fmt(r.avgAmount)}</span>
-          </div>
-          <span class="recurring-badge">× ${r.periodCount}</span>
-        </div>`).join('')}
-      </div>` : ''}
-
-      <!-- Owes You -->
-      ${openReimbursements.length > 0 ? `
-      <div class="section-title">Owes You <span class="section-hint">${openReimbursements.length} open</span></div>
-      <div class="budget-list">
-        ${openReimbursements.map(r => `
-        <div class="owes-row" data-name="${encodeURIComponent(r.name)}">
-          <div class="owes-left">
-            <span class="budget-category">${r.name}</span>
-            <span class="owes-status owes-${r.status.toLowerCase()}">${r.status}</span>
-          </div>
-          <span class="owes-amount">${fmt(r.outstanding)}</span>
-        </div>`).join('')}
-      </div>` : ''}
+      <!-- Configurable sections — ordered + filtered by Dashboard Settings -->
+      ${buildSections(sectionHtmlMap, loadSections())}
 
       <!-- Refresh -->
       <button class="btn-refresh" id="refresh-btn">
