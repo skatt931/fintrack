@@ -345,42 +345,33 @@ function renderPage(el) {
   </div>
 `;
 
-  // "Spent in [Period]" card — always uses billing period regardless of mode
-  const billingPeriods  = getAvailablePeriods(data, 'billing');
-  const billingPIdx     = getCurrentPeriodIndex(billingPeriods, data.transactions, 'billing');
-  const billingPeriod   = billingPeriods[billingPIdx] ?? period;
-  const billingTxns     = filterTxns(data, billingPeriod, 'billing');
-  const billingByCat    = {};
-  for (const t of billingTxns.filter(t => t.direction === 'expense')) {
+  // "Spent in [Period]" and "By Merchant" cards — follow the currently selected period + mode
+  const getMerchant   = t => t.merchant || t.description || t.note || t.Merchant || '';
+  const spentByCat    = {};
+  const spentByMerchant = {};
+  for (const t of txns.filter(t => t.direction === 'expense')) {
     const cat = t.category || 'Uncategorized';
-    billingByCat[cat] = (billingByCat[cat] || 0) + parseAmount(t.report_amount);
-  }
-  const billingCats  = Object.entries(billingByCat).sort(([, a], [, b]) => b - a);
-  const billingTotal = billingCats.reduce((s, [, v]) => s + v, 0);
-
-  // Merchant card — top merchants for the current billing period
-  const getMerchant = t => t.merchant || t.description || t.note || t.Merchant || '';
-  const billingByMerchant = {};
-  for (const t of billingTxns.filter(t => t.direction === 'expense')) {
+    spentByCat[cat] = (spentByCat[cat] || 0) + parseAmount(t.report_amount);
     const m = getMerchant(t);
-    if (!m) continue;
-    billingByMerchant[m] = (billingByMerchant[m] || 0) + parseAmount(t.report_amount);
+    if (m) spentByMerchant[m] = (spentByMerchant[m] || 0) + parseAmount(t.report_amount);
   }
-  const billingMerchants = Object.entries(billingByMerchant).sort(([, a], [, b]) => b - a);
+  const spentCats      = Object.entries(spentByCat).sort(([, a], [, b]) => b - a);
+  const spentTotal     = spentCats.reduce((s, [, v]) => s + v, 0);
+  const spentMerchants = Object.entries(spentByMerchant).sort(([, a], [, b]) => b - a);
 
-  const merchantCardHtml = billingMerchants.length > 0 ? (() => {
-    const rows = billingMerchants.slice(0, 4).map(([name, amt]) =>
+  const merchantCardHtml = spentMerchants.length > 0 ? (() => {
+    const rows = spentMerchants.slice(0, 4).map(([name, amt]) =>
       '<div class="mc-row">'
       + '<span class="mc-name">' + name + '</span>'
       + '<span class="mc-amount">' + fmt(amt) + '</span>'
       + '</div>'
     ).join('');
-    const remaining = billingMerchants.length - 4;
+    const remaining = spentMerchants.length - 4;
     const footer = remaining > 0
       ? '<span class="spent-card-hint">+' + remaining + ' more</span>'
-      : '<span class="spent-card-hint">' + billingMerchants.length + ' merchant' + (billingMerchants.length === 1 ? '' : 's') + '</span>';
+      : '<span class="spent-card-hint">' + spentMerchants.length + ' merchant' + (spentMerchants.length === 1 ? '' : 's') + '</span>';
     return '<div class="merchant-card" id="merchant-card">'
-      + '<div class="spent-card-label">BY MERCHANT · ' + fmtPeriod(billingPeriod).toUpperCase() + '</div>'
+      + '<div class="spent-card-label">BY MERCHANT · ' + fmtPeriod(period).toUpperCase() + '</div>'
       + '<div class="mc-list">' + rows + '</div>'
       + '<div class="spent-card-footer">' + footer
       + '<span class="spent-card-arrow">See all →</span>'
@@ -389,18 +380,18 @@ function renderPage(el) {
   })() : '';
 
   // Pre-build spent card HTML (avoids deep template literal nesting)
-  const spentCardHtml = billingTotal > 0 ? (() => {
-    const segBar = billingCats.slice(0, 9).map(([, amt], i) => {
-      const pct = (amt / billingTotal) * 100;
+  const spentCardHtml = spentTotal > 0 ? (() => {
+    const segBar = spentCats.slice(0, 9).map(([, amt], i) => {
+      const pct = (amt / spentTotal) * 100;
       return '<div class="seg-segment" style="width:' + pct.toFixed(1) + '%;background:' + CAT_COLORS[i] + '"></div>';
     }).join('');
-    const catWord = billingCats.length === 1 ? 'category' : 'categories';
+    const catWord = spentCats.length === 1 ? 'category' : 'categories';
     return '<div class="spent-card" id="spent-card">'
-      + '<div class="spent-card-label">SPENT IN ' + fmtPeriod(billingPeriod).toUpperCase() + '</div>'
-      + '<div class="spent-card-amount">' + fmt(billingTotal) + '</div>'
+      + '<div class="spent-card-label">SPENT IN ' + fmtPeriod(period).toUpperCase() + '</div>'
+      + '<div class="spent-card-amount">' + fmt(spentTotal) + '</div>'
       + '<div class="spent-card-seg-bar">' + segBar + '</div>'
       + '<div class="spent-card-footer">'
-      + '<span class="spent-card-hint">' + billingCats.length + ' ' + catWord + '</span>'
+      + '<span class="spent-card-hint">' + spentCats.length + ' ' + catWord + '</span>'
       + '<span class="spent-card-arrow">See breakdown →</span>'
       + '</div>'
       + '</div>';
@@ -620,14 +611,14 @@ function renderPage(el) {
     renderDashboard(el);
   });
 
-  // Spent card → breakdown page
+  // Spent card → breakdown page (uses current period + mode)
   el.querySelector('#spent-card')?.addEventListener('click', () => {
-    navigate('breakdown', { period: billingPeriod, mode: 'billing' });
+    navigate('breakdown', { period, mode });
   });
 
-  // Merchant card → merchants page
+  // Merchant card → merchants page (uses current period + mode)
   el.querySelector('#merchant-card')?.addEventListener('click', () => {
-    navigate('merchants', { period: billingPeriod, mode: 'billing' });
+    navigate('merchants', { period, mode });
   });
 
   // Today strip → daily view for today

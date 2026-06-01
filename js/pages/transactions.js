@@ -232,7 +232,12 @@ function renderPage(el) {
         </button>
       </div>
 
-      <!-- Filters -->
+      <!-- Period mode toggle + filters -->
+      <div class="txn-mode-toggle">
+        <button class="txn-mode-btn ${periodMode === 'billing' ? 'active' : ''}" data-mode="billing">Billing</button>
+        <button class="txn-mode-btn ${periodMode === 'calendar' ? 'active' : ''}" data-mode="calendar">Month</button>
+      </div>
+
       <div class="txn-filters">
         <select id="period-filter" class="filter-select">
           ${periods.map(p => `<option value="${p}" ${p === filterPeriod ? 'selected' : ''}>${p}</option>`).join('')}
@@ -290,8 +295,13 @@ function renderPage(el) {
     renderPage(el);
   });
   document.getElementById('txn-search').addEventListener('input', e => {
-    state.search = e.target.value;
+    const val   = e.target.value;
+    const start = e.target.selectionStart;
+    state.search = val;
     renderPage(el);
+    // Re-focus after full re-render so the keyboard stays visible on mobile
+    const inp = document.getElementById('txn-search');
+    if (inp) { inp.focus(); try { inp.setSelectionRange(start, start); } catch (_) {} }
   });
   document.getElementById('cat-filter').addEventListener('change', e => {
     state.filterCat = e.target.value || null;
@@ -318,6 +328,18 @@ function renderPage(el) {
       renderPage(el);
     })
   );
+
+  // Period mode toggle (Billing ↔ Month)
+  el.querySelectorAll('.txn-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.mode === state.periodMode) return;
+      state.periodMode    = btn.dataset.mode;
+      state.filterPeriod  = getCurrentPeriod(data, state.periodMode);
+      state.filterWeek    = null;
+      state.filterMerchant = null;
+      renderPage(el);
+    });
+  });
 
   // Period change resets week + merchant filter
   document.getElementById('period-filter').addEventListener('change', e => {
