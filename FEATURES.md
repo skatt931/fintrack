@@ -125,6 +125,12 @@ Four cards always shown at the top:
 - Outstanding = `expected_reimbursement − linked_reimbursement_total`
 - Tap any entry → Records searched by that person's name
 
+### Planned Expenses (Dashboard section)
+- Configurable section on the Dashboard (can be hidden in Dashboard Settings)
+- Shows up to 5 upcoming planned expenses due before the next payday
+- Displays total upcoming amount and **Projected Balance** (current balance − upcoming total)
+- Tapping the card opens the Planned Expenses management page
+
 ### Needs Review Banner
 - Shown when ≥ 1 transaction has `needs_review = TRUE`
 - Displays count; tap opens Records (no auto-filter applied)
@@ -236,6 +242,37 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Sorted list of all merchants with: emoji badge (inferred from merchant name), name, amount, % of total, progress bar
 - Tap any row → Records filtered to that merchant + period, same mode
 - Empty state message prompts adding a Merchant column to the sheet if none exists
+
+---
+
+## Planned Expenses
+
+- Manage upcoming committed bills and planned purchases
+- Accessible via the Dashboard section tap or ⋮ menu → Planned Expenses
+- Data stored in the **Planned Expenses** Google Sheets tab (pure data, no formulas)
+
+### Item types
+- **One-time** — a specific future purchase or bill; moves to Paid once marked paid
+- **Recurring** — monthly/quarterly/yearly items (e.g. subscriptions, rent); always visible in the Recurring section; "Mark as paid" records the current-period payment without removing the item
+
+### Sections on the management page
+- **Upcoming** — due before the next payday and not yet paid this period
+- **Recurring** — all recurring items; shows "✓ Paid" badge when paid this billing period
+- **Later** — one-time items due after the next payday
+- **Paid** — completed one-time items
+- **Cancelled** — collapsed at the bottom
+
+### Add / Edit
+- Fields: Name, Amount (Kč), Category, Due date, Recurring toggle, Recurring period (monthly/quarterly/yearly when recurring on), Notes, Status (edit only)
+- Save writes directly to the Planned Expenses Google Sheet
+
+### Mark as paid
+- **One-time**: sets `status = paid` in the sheet; item moves to Paid section
+- **Recurring**: writes `last_paid_date = today`; item stays active and resets automatically next billing period
+
+### Projected Balance
+- Shown on the Dashboard planned section
+- Formula: current period Balance − sum of unpaid upcoming planned amounts
 
 ---
 
