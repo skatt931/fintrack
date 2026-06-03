@@ -339,18 +339,26 @@ function openPlannedSheet(item, data, cats, pageEl) {
   const panel = sheet.querySelector('#ps-panel');
   requestAnimationFrame(() => panel.classList.add('open'));
 
-  // visualViewport keyboard handling
+  // Keep the sheet above the virtual keyboard.
+  // The sheet-panel has max-height:90vh which is 90% of the FULL screen height.
+  // When the keyboard appears and shrinks the overlay to vv.height, the panel can
+  // still try to be 720px (90% of 800px screen) inside a 500px overlay — it
+  // overflows ABOVE the overlay, pushing the top fields off screen.
+  // Fix: also cap panel.maxHeight to vv.height so it fits within the visible area.
   const vv = window.visualViewport;
   const onVVChange = () => {
     if (!vv) return;
-    sheet.style.top    = `${vv.offsetTop}px`;
-    sheet.style.height = `${vv.height}px`;
+    sheet.style.top       = `${vv.offsetTop}px`;
+    sheet.style.height    = `${vv.height}px`;
+    panel.style.maxHeight = `${vv.height}px`;
   };
   if (vv) { vv.addEventListener('resize', onVVChange); vv.addEventListener('scroll', onVVChange); }
 
   const close = () => {
     if (vv) { vv.removeEventListener('resize', onVVChange); vv.removeEventListener('scroll', onVVChange); }
-    sheet.style.top = ''; sheet.style.height = '';
+    sheet.style.top       = '';
+    sheet.style.height    = '';
+    panel.style.maxHeight = '';
     panel.classList.remove('open');
     setTimeout(() => sheet.remove(), 280);
   };

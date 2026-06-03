@@ -975,8 +975,9 @@ function openBudgetEditSheet(b, data, el) {
   const vv = window.visualViewport;
   const onViewportChange = () => {
     if (!vv) return;
-    sheet.style.top    = `${vv.offsetTop}px`;
-    sheet.style.height = `${vv.height}px`;
+    sheet.style.top       = `${vv.offsetTop}px`;
+    sheet.style.height    = `${vv.height}px`;
+    panel.style.maxHeight = `${vv.height}px`; // prevent panel overflowing above overlay
   };
   if (vv) {
     vv.addEventListener('resize', onViewportChange);
@@ -988,8 +989,9 @@ function openBudgetEditSheet(b, data, el) {
       vv.removeEventListener('resize', onViewportChange);
       vv.removeEventListener('scroll', onViewportChange);
     }
-    sheet.style.top    = '';
-    sheet.style.height = '';
+    sheet.style.top       = '';
+    sheet.style.height    = '';
+    panel.style.maxHeight = '';
     panel.classList.remove('open');
     setTimeout(() => sheet.remove(), 280);
   };
