@@ -79,6 +79,38 @@ function computeDaysUntilPayday(salaryPeriods) {
   );
 }
 
+// Returns the next salary period start_date string after today, or null
+function computeNextPayday(salaryPeriods) {
+  const today = new Date().toISOString().slice(0, 10);
+  return [...salaryPeriods]
+    .filter(p => p.start_date && p.start_date > today)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0]?.start_date || null;
+}
+
+// Returns planned items that count toward the upcoming total:
+//   one-time: status=planned, due_date <= nextPayday
+//   recurring: not paid in current billing period, due_date <= nextPayday
+function getUpcomingPlanned(planned, salaryPeriods) {
+  const today       = new Date().toISOString().slice(0, 10);
+  const nextPay     = computeNextPayday(salaryPeriods) || '9999-99-99';
+  // billing period start = most recent start_date <= today
+  const periodStart = [...salaryPeriods]
+    .filter(p => p.start_date && p.start_date <= today)
+    .sort((a, b) => b.start_date.localeCompare(a.start_date))[0]?.start_date || today;
+
+  return (planned || []).filter(p => {
+    if (p.status === 'cancelled' || p.status === 'paid') return false;
+    const due = p.due_date || '';
+    if (!due || due > nextPay) return false;
+    const isRec = p.recurring === 'TRUE' || p.recurring === true;
+    if (isRec) {
+      const lpd = p.last_paid_date || '';
+      return !(lpd >= periodStart && lpd <= today); // not paid this period
+    }
+    return true; // one-time, due before payday, not paid/cancelled
+  });
+}
+
 // Open reimbursements — transactions the user is owed money on
 function getOpenReimbursements(transactions) {
   return transactions
@@ -341,6 +373,12 @@ function renderPage(el) {
     : null;
   const budget            = computeBudgetProgress(txns, data.budgets);
   const openReimbursements = getOpenReimbursements(data.transactions);
+
+  // Planned expenses — upcoming before next payday
+  const upcomingPlanned      = getUpcomingPlanned(data.planned || [], data.salaryPeriods);
+  const upcomingPlannedTotal = upcomingPlanned.reduce((s, p) => s + parseAmount(p.amount), 0);
+  const projectedBalance     = summary.balance - upcomingPlannedTotal;
+
   const hasSpend    = budget.some(b => b.actual > 0);
 
   // Budget pacing — only meaningful in billing mode
@@ -543,6 +581,36 @@ function renderPage(el) {
       </div>`).join('')}
     </div>` : '';
 
+  const plannedSectionHtml = (() => {
+    if (!upcomingPlanned.length) return `
+      <div class="section-title">Planned Expenses</div>
+      <div class="planned-dash-empty">No upcoming planned expenses</div>`;
+
+    const rows = upcomingPlanned.slice(0, 5).map(p => {
+      const emoji = getCategoryEmoji(p.category || '');
+      return `<div class="planned-dash-row">
+        <span>${emoji}</span>
+        <span class="planned-dash-name">${p.name || '—'}</span>
+        <span class="planned-dash-amt">−${fmt(parseAmount(p.amount))}</span>
+      </div>`;
+    }).join('');
+
+    const more = upcomingPlanned.length > 5
+      ? `<div class="planned-dash-more">+${upcomingPlanned.length - 5} more</div>` : '';
+
+    return `
+      <div class="planned-dash-card" id="planned-dash-card">
+        <div class="section-title" style="margin-top:0">Planned Expenses
+          <span class="section-hint">${upcomingPlanned.length} upcoming</span>
+        </div>
+        ${rows}${more}
+        <div class="planned-dash-footer">
+          <span class="planned-dash-total">Upcoming: −${fmt(upcomingPlannedTotal)}</span>
+          <span class="planned-dash-projected">Projected: ${fmt(projectedBalance)}</span>
+        </div>
+      </div>`;
+  })();
+
   // Map of section id → HTML; order and visibility controlled by settings
   const sectionHtmlMap = {
     today:      todayStripHtml,
@@ -555,6 +623,7 @@ function renderPage(el) {
     weekly:     weeklySectionHtml,
     recurring:  recurringSectionHtml,
     owes:       owesSectionHtml,
+    planned:    plannedSectionHtml,
   };
 
   el.innerHTML = `
@@ -654,6 +723,11 @@ function renderPage(el) {
     row.addEventListener('click', () => {
       navigate('transactions', { search: decodeURIComponent(row.dataset.name) });
     });
+  });
+
+  // Planned dashboard card → planned expenses page
+  el.querySelector('#planned-dash-card')?.addEventListener('click', () => {
+    navigate('planned');
   });
 
   // Refresh
