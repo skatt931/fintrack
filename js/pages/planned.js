@@ -1,4 +1,4 @@
-import { loadData, updatePlannedExpense, appendPlannedExpense, clearCache } from '../api.js';
+import { loadData, updatePlannedExpense, appendPlannedExpense } from '../api.js';
 import { navigate }         from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
 

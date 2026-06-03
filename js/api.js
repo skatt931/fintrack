@@ -223,6 +223,7 @@ export async function updatePlannedExpense(row, plannedHeaders, fields) {
 
 // Append a new row to the Planned Expenses sheet.
 export async function appendPlannedExpense(plannedHeaders, fields) {
+  if (!plannedHeaders.length) throw new Error('Planned Expenses sheet has no header row. Please add the column headers to the sheet first.');
   const rowValues = plannedHeaders.map(h => fields[h] ?? '');
 
   await withAuth(async token => {

@@ -606,7 +606,7 @@ function renderPage(el) {
         ${rows}${more}
         <div class="planned-dash-footer">
           <span class="planned-dash-total">Upcoming: −${fmt(upcomingPlannedTotal)}</span>
-          <span class="planned-dash-projected">Projected: ${fmt(projectedBalance)}</span>
+          <span class="planned-dash-projected ${projectedBalance < 0 ? 'negative' : 'positive'}">${projectedBalance < 0 ? '−' : ''}${fmt(projectedBalance)}</span>
         </div>
       </div>`;
   })();

@@ -1865,7 +1865,9 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   font-size: 0.8rem;
 }
 .planned-dash-total     { color: var(--red); font-weight: 600; }
-.planned-dash-projected { color: var(--green); font-weight: 700; }
+.planned-dash-projected          { font-weight: 700; }
+.planned-dash-projected.positive { color: var(--green); }
+.planned-dash-projected.negative { color: var(--red); }
 .planned-dash-empty {
   background: var(--surface);
   border: 1px solid var(--border);
