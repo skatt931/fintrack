@@ -382,6 +382,35 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
   const isExp  = txn.direction === 'expense';
   const review = txn.needs_review === 'TRUE' || txn.needs_review === true;
 
+  // Debt / reimbursement fields (W, X, Y in the Transactions sheet)
+  const existingRole     = txn.link_role || '';
+  const existingGroupId  = txn.linked_group_id || '';
+  const existingExpected = txn.expected_reimbursement
+    ? String(Math.round(parseAmount(txn.expected_reimbursement)))
+    : '';
+
+  // Auto-generate a readable debt ID for new debts
+  const autoDebtId = (() => {
+    const d = new Date().toISOString().slice(0,10).replace(/-/g,'');
+    const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const r = Array.from({length:4}, () => c[Math.floor(Math.random()*c.length)]).join('');
+    return `DEBT-${d}-${r}`;
+  })();
+
+  // Open debts available to link as reimbursement (deduped by linked_group_id)
+  const openDebts = data.transactions
+    .filter(t => t.link_role === 'original_expense' && t.reimbursement_status !== 'Settled' && t.linked_group_id)
+    .reduce((acc, t) => {
+      if (!acc.find(d => d.id === t.linked_group_id)) {
+        acc.push({
+          id:   t.linked_group_id,
+          name: t.merchant || t.description || t.user_comment || t.category || 'Expense',
+          amt:  Math.round(parseAmount(t.expected_reimbursement)),
+        });
+      }
+      return acc;
+    }, []);
+
   // Merchant field — exactly the column named "merchant" (any case)
   const merchantField = data.txHeaders.find(h => h.toLowerCase() === 'merchant') || null;
   const merchantValue = merchantField ? (txn[merchantField] || '') : '';
@@ -399,6 +428,9 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
   const knownFields = new Set([
     'email_id','date','bank','direction','amount','currency',
     'category','month','billing_period','needs_review','report_amount','_row',
+    // Debt / reimbursement — handled by the dedicated Debt section below
+    'link_role','linked_group_id','expected_reimbursement',
+    'linked_reimbursement_total','reimbursement_status',
     ...(merchantField ? [merchantField] : []),
     ...(commentField  ? [commentField]  : []),
   ]);
@@ -458,6 +490,52 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
             <span class="toggle-label" id="review-label">${review ? 'Yes' : 'No'}</span>
           </label>
         </div>
+
+        <!-- ── Debt / Reimbursement ─────────────────────────────────────── -->
+        <div class="field-group debt-section">
+          <label class="field-label">Debt / Reimbursement</label>
+          <select class="field-select" id="edit-debt-role">
+            <option value="">— Normal —</option>
+            <option value="original_expense" ${existingRole === 'original_expense' ? 'selected' : ''}>Debt (I expect money back)</option>
+            <option value="reimbursement"    ${existingRole === 'reimbursement'    ? 'selected' : ''}>Reimbursement (money received)</option>
+          </select>
+
+          <!-- Fields shown when marked as Debt -->
+          <div id="debt-original-fields" style="display:${existingRole === 'original_expense' ? 'flex' : 'none'};flex-direction:column;gap:10px;margin-top:10px">
+            <div class="field-group">
+              <label class="field-label">Expected back (Kč)</label>
+              <input class="field-input" id="edit-debt-expected" type="number" min="0" step="1"
+                     value="${existingExpected || (isExp ? Math.round(amt) : '')}"
+                     placeholder="Amount you expect to receive back">
+            </div>
+            <div class="field-group">
+              <label class="field-label">Debt ID <span class="field-optional">(auto-generated)</span></label>
+              <input class="field-input" id="edit-debt-id" type="text"
+                     value="${existingGroupId || autoDebtId}"
+                     placeholder="DEBT-YYYYMMDD-XXXX">
+            </div>
+          </div>
+
+          <!-- Fields shown when marking as Reimbursement -->
+          <div id="debt-reimb-fields" style="display:${existingRole === 'reimbursement' ? 'flex' : 'none'};flex-direction:column;gap:10px;margin-top:10px">
+            ${openDebts.length > 0 ? `
+            <div class="field-group">
+              <label class="field-label">Link to debt</label>
+              <select class="field-select" id="edit-reimb-select">
+                <option value="">— Select open debt or type ID below —</option>
+                ${openDebts.map(d => `<option value="${d.id}" ${existingGroupId === d.id ? 'selected' : ''}>${d.name} · ${fmt(d.amt)} Kč (${d.id})</option>`).join('')}
+              </select>
+            </div>` : ''}
+            <div class="field-group">
+              <label class="field-label">Debt ID</label>
+              <input class="field-input" id="edit-reimb-id" type="text"
+                     value="${existingGroupId}"
+                     placeholder="Paste the Debt ID from the original expense">
+            </div>
+          </div>
+        </div>
+        <!-- ──────────────────────────────────────────────────────────────── -->
+
       </div>
 
       <div class="sheet-actions">
@@ -513,6 +591,25 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
     sheet.querySelector('#review-label').textContent = e.target.checked ? 'Yes' : 'No';
   });
 
+  // Debt section — show/hide sub-fields based on role selection
+  const debtRoleEl = sheet.querySelector('#edit-debt-role');
+  const origFields = sheet.querySelector('#debt-original-fields');
+  const reimbFields = sheet.querySelector('#debt-reimb-fields');
+  debtRoleEl?.addEventListener('change', () => {
+    origFields.style.display  = debtRoleEl.value === 'original_expense' ? 'flex' : 'none';
+    reimbFields.style.display = debtRoleEl.value === 'reimbursement'    ? 'flex' : 'none';
+    // Auto-fill the Debt ID input when first switching to debt mode
+    const debtIdEl = sheet.querySelector('#edit-debt-id');
+    if (debtRoleEl.value === 'original_expense' && debtIdEl && !debtIdEl.value) {
+      debtIdEl.value = autoDebtId;
+    }
+  });
+
+  // Sync reimbursement dropdown → ID input
+  sheet.querySelector('#edit-reimb-select')?.addEventListener('change', e => {
+    if (e.target.value) sheet.querySelector('#edit-reimb-id').value = e.target.value;
+  });
+
   sheet.querySelector('#sheet-save').addEventListener('click', async () => {
     const newCat      = sheet.querySelector('#edit-category').value;
     const newReview   = sheet.querySelector('#edit-review').checked ? 'TRUE' : 'FALSE';
@@ -526,10 +623,28 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
     if (merchantField) updates[merchantField] = newMerchant;
     if (commentField)  updates[commentField]  = newComment;
 
+    // Debt fields — always include so clearing also writes back
+    const newDebtRole = sheet.querySelector('#edit-debt-role')?.value || '';
+    updates.link_role = newDebtRole;
+    if (newDebtRole === 'original_expense') {
+      const rawExp = sheet.querySelector('#edit-debt-expected')?.value;
+      updates.expected_reimbursement = rawExp ? String(Math.round(parseFloat(rawExp) || 0)) : '';
+      updates.linked_group_id        = sheet.querySelector('#edit-debt-id')?.value?.trim() || '';
+    } else if (newDebtRole === 'reimbursement') {
+      updates.linked_group_id        = sheet.querySelector('#edit-reimb-id')?.value?.trim() || '';
+      updates.expected_reimbursement = '';
+    } else {
+      updates.linked_group_id        = '';
+      updates.expected_reimbursement = '';
+    }
+
     try {
       await updateTransactionCells(txn._row, data.txHeaders, updates);
-      txn.category     = newCat;
-      txn.needs_review = newReview;
+      txn.category                = newCat;
+      txn.needs_review            = newReview;
+      txn.link_role               = updates.link_role;
+      txn.linked_group_id         = updates.linked_group_id;
+      txn.expected_reimbursement  = updates.expected_reimbursement;
       if (merchantField) txn[merchantField] = newMerchant;
       if (commentField)  txn[commentField]  = newComment;
       close();

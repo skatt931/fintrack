@@ -1822,3 +1822,10 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   transition: background 0.15s;
 }
 .settings-reset-btn:active { background: var(--surface-2); }
+
+/* ── Debt section in edit sheet ──────────────────────────────────────────── */
+.debt-section {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 4px;
+}
