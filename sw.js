@@ -1,4 +1,4 @@
-const CACHE = 'finance-v20';
+const CACHE = 'finance-v21';
 
 // Minimal install — just activate immediately, no precaching
 // (precaching with absolute paths breaks on GitHub Pages subdirectory deployments)

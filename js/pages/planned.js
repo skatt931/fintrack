@@ -60,7 +60,9 @@ function classify(planned, salaryPeriods) {
   const paid      = [];
   const cancelled = [];
 
-  for (const item of planned) {
+  // Skip sheet rows that have no name — these are Google Sheets formatting artefacts
+  // (e.g. checkbox columns default 'FALSE' on many rows, making them pass the non-empty filter)
+  for (const item of planned.filter(p => (p.name || '').trim())) {
     const isRec  = item.recurring === 'TRUE' || item.recurring === true;
     const status = item.status || 'planned';
 
@@ -97,6 +99,28 @@ export function renderPlanned(el, params = {}) {
 
 function renderPage(el, data) {
   const { planned = [], plannedHeaders = [], salaryPeriods = [] } = data;
+
+  // If the sheet tab exists but has no header row the headers array is empty.
+  // This happens when the app was loaded before the sheet was created in Google Sheets.
+  // The user must refresh data (⋮ → Refresh Data) to pick up the headers.
+  if (!plannedHeaders.length) {
+    el.innerHTML = `
+      <div class="planned-page">
+        <button class="bp-back" id="planned-back">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Overview
+        </button>
+        <div class="planned-empty" style="padding-top:48px">
+          <p style="font-size:1.5rem;margin-bottom:12px">⚠️</p>
+          <p><strong>Sheet headers not loaded.</strong></p>
+          <p style="margin-top:8px;font-size:0.8rem">The Planned Expenses sheet was created after this session started.<br>
+          Tap <strong>⋮ → Refresh Data</strong> to reload, then try again.</p>
+        </div>
+      </div>`;
+    el.querySelector('#planned-back').addEventListener('click', () => navigate('dashboard'));
+    return;
+  }
+
   const cats = [...new Set([
     ...data.budgets.map(b => b.Category).filter(Boolean),
     ...data.budgets.map(b => b.all_categories).filter(Boolean),

@@ -99,6 +99,7 @@ function getUpcomingPlanned(planned, salaryPeriods) {
     .sort((a, b) => b.start_date.localeCompare(a.start_date))[0]?.start_date || today;
 
   return (planned || []).filter(p => {
+    if (!(p.name || '').trim()) return false;      // skip empty/artefact rows
     if (p.status === 'cancelled' || p.status === 'paid') return false;
     const due = p.due_date || '';
     if (!due || due > nextPay) return false;
