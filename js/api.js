@@ -2,7 +2,7 @@ import { SPREADSHEET_ID, SHEETS } from './config.js';
 import { getToken, requestToken, clearToken } from './auth.js';
 
 const BASE      = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`;
-const CACHE_KEY = 'finance_data_v2'; // bumped — busts old format caches
+const CACHE_KEY = 'finance_data_v3'; // bumped — busts old format caches
 const CACHE_TTL = 5 * 60 * 1000;
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
@@ -56,18 +56,21 @@ export async function loadData(force = false) {
   }
 
   const data = await withAuth(async token => {
-    const [txResult, budgetsResult, spResult] = await Promise.all([
+    const [txResult, budgetsResult, spResult, plannedResult] = await Promise.all([
       fetchRange(SHEETS.transactions,  token),
       fetchRange(SHEETS.budgets,       token),
       fetchRange(SHEETS.salaryPeriods, token),
+      fetchRange(SHEETS.planned,       token),
     ]);
     return {
-      transactions:  txResult.rows,
-      txHeaders:     txResult.headers,   // column order, needed for writes
-      budgets:       budgetsResult.rows,
-      budgetHeaders: budgetsResult.headers,
-      salaryPeriods: spResult.rows,
-      loadedAt:      Date.now(),
+      transactions:   txResult.rows,
+      txHeaders:      txResult.headers,   // column order, needed for writes
+      budgets:        budgetsResult.rows,
+      budgetHeaders:  budgetsResult.headers,
+      salaryPeriods:  spResult.rows,
+      planned:        plannedResult.rows,
+      plannedHeaders: plannedResult.headers,
+      loadedAt:       Date.now(),
     };
   });
 
@@ -177,6 +180,57 @@ export async function appendBudgetRow(category, amount) {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ values: [[category, amount]] }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Append failed: ${resp.status}`);
+    }
+  });
+
+  clearCache();
+}
+
+// Update specific fields of a planned expense row (any column by header name).
+export async function updatePlannedExpense(row, plannedHeaders, fields) {
+  const data = Object.entries(fields)
+    .map(([field, value]) => {
+      const idx = plannedHeaders.indexOf(field);
+      if (idx === -1) return null;
+      return {
+        range:  `${SHEETS.planned}!${colLetter(idx)}${row}`,
+        values: [[value]],
+      };
+    })
+    .filter(Boolean);
+
+  if (!data.length) return;
+
+  await withAuth(async token => {
+    const url  = `${BASE}/values:batchUpdate`;
+    const resp = await fetch(url, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ valueInputOption: 'USER_ENTERED', data }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error?.message || `Update failed: ${resp.status}`);
+    }
+  });
+
+  clearCache();
+}
+
+// Append a new row to the Planned Expenses sheet.
+export async function appendPlannedExpense(plannedHeaders, fields) {
+  const rowValues = plannedHeaders.map(h => fields[h] ?? '');
+
+  await withAuth(async token => {
+    const url  = `${BASE}/values/${encodeURIComponent(SHEETS.planned)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
+    const resp = await fetch(url, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ values: [rowValues] }),
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));

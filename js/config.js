@@ -26,4 +26,5 @@ export const SHEETS = {
   transactions:  'Transactions',
   budgets:       'Budgets',
   salaryPeriods: 'Salary Periods',
+  planned:       'Planned Expenses',
 };
