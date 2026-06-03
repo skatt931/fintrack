@@ -190,12 +190,21 @@ export async function appendBudgetRow(category, amount) {
   clearCache();
 }
 
-// Update specific fields of a planned expense row (any column by header name).
+// Normalise a header / field name for case-insensitive, whitespace-tolerant matching.
+// "Due Date" / "due_date" / " DueDate " all collapse to "duedate".
+function normKey(s) {
+  return String(s ?? '').toLowerCase().replace(/[\s_-]/g, '');
+}
+
+// Update specific fields of a planned expense row.
+// Matches header names case-insensitively (handles "Name" vs "name", "Due Date" vs "due_date").
 export async function updatePlannedExpense(row, plannedHeaders, fields) {
+  const headerIndexByNorm = new Map(plannedHeaders.map((h, i) => [normKey(h), i]));
+
   const data = Object.entries(fields)
     .map(([field, value]) => {
-      const idx = plannedHeaders.indexOf(field);
-      if (idx === -1) return null;
+      const idx = headerIndexByNorm.get(normKey(field));
+      if (idx === undefined) return null;
       return {
         range:  `${SHEETS.planned}!${colLetter(idx)}${row}`,
         values: [[value]],
@@ -203,7 +212,10 @@ export async function updatePlannedExpense(row, plannedHeaders, fields) {
     })
     .filter(Boolean);
 
-  if (!data.length) return;
+  if (!data.length) {
+    console.warn('[updatePlannedExpense] No header matches for fields:', Object.keys(fields), 'against headers:', plannedHeaders);
+    return;
+  }
 
   await withAuth(async token => {
     const url  = `${BASE}/values:batchUpdate`;
@@ -222,9 +234,26 @@ export async function updatePlannedExpense(row, plannedHeaders, fields) {
 }
 
 // Append a new row to the Planned Expenses sheet.
+// Matches header names case-insensitively so the sheet's headers can be e.g.
+// "Name" / "name" / "Due Date" / "due_date" without breaking the save.
 export async function appendPlannedExpense(plannedHeaders, fields) {
   if (!plannedHeaders.length) throw new Error('Planned Expenses sheet has no header row. Please add the column headers to the sheet first.');
-  const rowValues = plannedHeaders.map(h => fields[h] ?? '');
+
+  const fieldsByNorm = {};
+  for (const [k, v] of Object.entries(fields)) fieldsByNorm[normKey(k)] = v;
+
+  const rowValues = plannedHeaders.map(h => fieldsByNorm[normKey(h)] ?? '');
+
+  // Defensive: if every cell would be empty, the headers don't match our field names — bail
+  const allEmpty = rowValues.every(v => v === '' || v == null);
+  if (allEmpty) {
+    console.error('[appendPlannedExpense] Headers did not match any fields.', { plannedHeaders, fields });
+    throw new Error(
+      `Sheet headers do not match expected names.\n` +
+      `Expected (any of): name, amount, category, due_date, recurring, recurring_period, status, last_paid_date, notes.\n` +
+      `Found in sheet: ${plannedHeaders.join(', ')}`
+    );
+  }
 
   await withAuth(async token => {
     const url  = `${BASE}/values/${encodeURIComponent(SHEETS.planned)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;

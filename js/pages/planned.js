@@ -84,12 +84,36 @@ function classify(planned, salaryPeriods) {
   return { upcoming, recurring, later, paid, cancelled };
 }
 
+// Add canonical lowercase aliases to each row so item.name / item.amount / etc.
+// work regardless of the actual case of the sheet headers
+// ("Name" → also creates item.name; "Due Date" → also creates item.due_date).
+function withLowercaseAliases(rows) {
+  const wanted = ['name','category','amount','due_date','recurring','recurring_period','status','last_paid_date','notes'];
+  return rows.map(row => {
+    const out = { ...row };
+    for (const want of wanted) {
+      if (out[want] != null && out[want] !== '') continue; // already set
+      const wantNorm = want.replace(/[\s_-]/g, '');
+      for (const [k, v] of Object.entries(row)) {
+        if (k.startsWith('_')) continue;
+        const kNorm = String(k).toLowerCase().replace(/[\s_-]/g, '');
+        if (kNorm === wantNorm) { out[want] = v; break; }
+      }
+    }
+    return out;
+  });
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 export function renderPlanned(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
   loadData()
-    .then(data => renderPage(el, data))
+    .then(data => {
+      // Normalise planned row keys so the page works regardless of sheet header case
+      const normalised = { ...data, planned: withLowercaseAliases(data.planned || []) };
+      renderPage(el, normalised);
+    })
     .catch(err => {
       el.innerHTML = `<div class="planned-page"><div class="error-msg">${err.message}</div></div>`;
     });

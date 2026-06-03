@@ -98,7 +98,23 @@ function getUpcomingPlanned(planned, salaryPeriods) {
     .filter(p => p.start_date && p.start_date <= today)
     .sort((a, b) => b.start_date.localeCompare(a.start_date))[0]?.start_date || today;
 
-  return (planned || []).filter(p => {
+  // Build lowercase-normalised view of each row so case-mismatched headers still work
+  const norm = (planned || []).map(p => {
+    const out = { ...p };
+    for (const [k, v] of Object.entries(p)) {
+      if (k.startsWith('_')) continue;
+      const lk = String(k).toLowerCase().replace(/[\s_-]/g, '');
+      if (lk === 'name')           out.name           ??= v;
+      if (lk === 'amount')         out.amount         ??= v;
+      if (lk === 'duedate')        out.due_date       ??= v;
+      if (lk === 'recurring')      out.recurring      ??= v;
+      if (lk === 'lastpaiddate')   out.last_paid_date ??= v;
+      if (lk === 'status')         out.status         ??= v;
+    }
+    return out;
+  });
+
+  return norm.filter(p => {
     if (!(p.name || '').trim()) return false;      // skip empty/artefact rows
     if (p.status === 'cancelled' || p.status === 'paid') return false;
     const due = p.due_date || '';
