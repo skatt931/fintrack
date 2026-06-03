@@ -13,7 +13,7 @@ Personal finance tracker backed by Google Sheets. PWA (installable, offline-capa
 - Sign in with Google (OAuth 2.0 / Google Identity Services)
 - Token stored in `sessionStorage` — not persisted across browser sessions
 - Auto-refresh: token renewed 60 s before expiry; prompts re-auth if refresh fails
-- Sign-out via menu (⋮) button — clears token and data cache, returns to sign-in screen
+- Sign-out via the ⋮ menu → action sheet → **Sign Out**
 
 ---
 
@@ -22,9 +22,9 @@ Personal finance tracker backed by Google Sheets. PWA (installable, offline-capa
 - Google Sheets backend — three sheets: **Transactions**, **Budgets**, **Salary Periods**
 - 5-minute session cache minimises API calls; survives tab navigation
 - Cache auto-invalidates after any write (add or edit)
-- Manual refresh button on Overview forces full reload
+- Manual **Refresh Data** option in the ⋮ menu forces full reload
 - Cell-level updates via Sheets API v4 (`batchUpdate`)
-- Formula columns (`month`, `billing_period`, `report_amount`) are never overwritten — computed by the sheet
+- Formula columns (`month`, `billing_period`, `report_amount`, `linked_reimbursement_total`, `reimbursement_status`) are never overwritten — computed by the sheet
 
 ---
 
@@ -40,35 +40,51 @@ Five pages accessible via the bottom tab bar:
 | Spending | Category breakdown |
 | Merchants | Merchant breakdown |
 
-Daily View is accessible by:
-- Tapping any date header in the Records list
-- Tapping the **Today strip** on the Overview dashboard
+Additional pages (not in tab bar):
+- **Daily View** — accessed by tapping any date header in Records, or the Today strip on the Dashboard
+- **Dashboard Settings** — accessed via ⋮ menu → Dashboard Settings
 
 Breakdown and Merchants pages are also reachable by drilling down from Overview cards.
+
+### Menu (⋮ button)
+
+Opens an action sheet with three options:
+- **Dashboard Settings** — configure which sections are visible and their order
+- **Refresh Data** — clears cache and reloads all data from Google Sheets
+- **Sign Out** — clears token and cache, returns to sign-in screen
 
 ---
 
 ## Overview (Dashboard)
 
 ### Summary Cards
+
+Four cards always shown at the top:
+
 - **Income** — total income for the period; tap to open Records filtered to income only
 - **Expenses** — total expenses; tap to open Records filtered to expenses only
 - **Balance** — income minus expenses (green if positive, red if negative)
-- **Savings Rate** — `(income − expenses) / income × 100 %`
+- **Safe Limit** — daily spending limit = `balance ÷ days until next payday`; sub-label shows "payday in N days"; shows `—` if balance is negative or no future payday found
 
 ### Period Controls
 - Toggle between **Billing Period** (salary-cycle based) and **Calendar Month**
 - Previous / Next navigation buttons to browse historical periods
 - Billing period boundaries derived from the Salary Periods sheet
 
+### Today Strip
+- Compact strip below the Summary Cards
+- Shows today's date, total expenses for today, and top category emojis
+- Tapping opens the Daily View for today
+- Shows "Nothing spent" when no expense transactions exist for today
+
 ### Spent in Period Card
-- Shows total amount spent in the current **billing period** (always billing mode, not calendar)
+- Shows total amount spent in the **currently selected period and mode**
 - Segmented colour bar: top 9 categories proportionally coloured
-- "N categories" count; tap opens the Spending breakdown page
+- "N categories" count; tap opens the Spending Breakdown page for the same period/mode
 
 ### By Merchant Card
-- Shows top 4 merchants by spend in the current billing period
-- "+N more" when more than 4 merchants exist; tap opens the Merchants page
+- Shows top 4 merchants by spend in the **currently selected period and mode**
+- "+N more" when more than 4 merchants exist; tap opens the Merchants page for the same period/mode
 
 ### Budget vs Actual
 - 2-column grid of budget cards, one per category
@@ -103,17 +119,34 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 - Shows average amount and "× N periods" frequency badge
 - Sorted by average amount descending, capped at 8 entries
 
+### Owes You
+- Shows all open reimbursement debts — transactions where `link_role = original_expense` and `reimbursement_status ≠ Settled`
+- Per entry: person name (from merchant/description/comment field), outstanding amount, status badge (Waiting / Partial)
+- Outstanding = `expected_reimbursement − linked_reimbursement_total`
+- Tap any entry → Records searched by that person's name
+
 ### Needs Review Banner
 - Shown when ≥ 1 transaction has `needs_review = TRUE`
 - Displays count; tap opens Records (no auto-filter applied)
+
+### Dashboard Settings
+- All sections except Summary Cards and Needs Review Banner are configurable
+- Access via ⋮ menu → Dashboard Settings
+- Toggle sections on/off and reorder them using ↑ ↓ arrows
+- Settings persisted in `localStorage` — survive app restarts
+- Reset to defaults button restores original order and visibility
 
 ---
 
 ## Records (Transaction List)
 
+### Period Mode Toggle
+- **Billing / Month** pill toggle at the top — switches between billing-period and calendar-month grouping
+- Switching mode resets the period dropdown to the current period in the new mode
+
 ### Filters
-- **Search** — real-time, matches category, bank, merchant, and all other fields
-- **Period dropdown** — select any available billing period or calendar month
+- **Search** — real-time, matches category, bank, merchant, and all other fields; pre-filled when navigating from search-based drill-downs
+- **Period dropdown** — select any available billing period or calendar month (list changes with mode)
 - **Category dropdown** — filter to a single category
 - **Week pills** — shown when the period contains multiple weeks; filter by Week 1–5
 - **Active filter chips** — dismissible chips for direction ("Income only" / "Expenses only"), category, and merchant filters applied from drill-down navigation
@@ -130,8 +163,9 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 - "Review" badge for flagged transactions
 
 ### Date Grouping
-- Transactions grouped under date headers (e.g., "Mon, 01 Jan")
+- Transactions grouped under date headers (e.g., "Mon, 01 Jan →")
 - Groups sorted in the same direction as the active sort
+- **Tapping a date header navigates to the Daily View for that date**
 
 ### Edit Sheet (tap any transaction)
 - Bottom sheet slides up; repositions above the virtual keyboard automatically (using `visualViewport` API)
@@ -141,8 +175,21 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
   - Merchant — text input (shown only if sheet has a Merchant column)
   - User Comment — textarea (shown only if sheet has a comment/note column)
   - Needs Review — toggle switch (Yes / No)
+  - **Debt / Reimbursement** — see below
 - **Read-only display:** all other transaction fields shown as key–value pairs
 - Save writes only changed cells back to the sheet; cache is invalidated on success
+
+#### Debt / Reimbursement (in Edit Sheet)
+
+A dedicated section at the bottom of the edit sheet with three role options:
+
+| Role | Description | Fields written |
+|------|-------------|---------------|
+| **Normal** | No debt relationship | Clears `link_role`, `linked_group_id`, `expected_reimbursement` |
+| **Debt** (I expect money back) | Marks this as an `original_expense` | `link_role = original_expense`, `linked_group_id` (auto-generated `DEBT-YYYYMMDD-XXXX`), `expected_reimbursement` (editable amount) |
+| **Reimbursement** (money received) | Links this income to an existing debt | `link_role = reimbursement`, `linked_group_id` (dropdown of open debts or manual ID entry) |
+
+`reimbursement_status` and `linked_reimbursement_total` are auto-computed by the sheet and never written by the app.
 
 ---
 
@@ -154,14 +201,7 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 - **Header** — total expenses for the day + up to 3 category emoji chips (only shown when transactions exist)
 - **Empty state** — "Nothing spent on this day." shown for days with no expense transactions
 - **Transaction rows** — same style as Records; tap any row to open the edit bottom sheet
-- Future dates disabled in the → navigation button
-
-### Today Strip (Overview Dashboard)
-
-- Compact strip below the Summary Cards on the Dashboard
-- Shows today's date, total expenses today, and top category emojis
-- Tapping opens the Daily View for today
-- Shows "Nothing spent" when no expense transactions exist for today
+- Future dates and today's date are disabled in the → navigation button (no forward navigation past today)
 
 ---
 
@@ -181,20 +221,20 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 ## Spending Breakdown
 
 - Reached by tapping the Spent in Period card or the Spending tab
-- Period and mode passed from caller context
+- Period and mode passed from caller context (follows Dashboard's selected mode)
 - Header: period title, total spent, category count, segmented colour bar
 - Sorted list of all expense categories with: emoji badge, name, amount, % of total, progress bar
-- Tap any row → Records filtered to that category + period
+- Tap any row → Records filtered to that category + period, same mode
 
 ---
 
 ## Merchants
 
 - Reached by tapping the By Merchant card or the Merchants tab
-- Period and mode passed from caller context
+- Period and mode passed from caller context (follows Dashboard's selected mode)
 - Header: period title, total spent, merchant count
 - Sorted list of all merchants with: emoji badge (inferred from merchant name), name, amount, % of total, progress bar
-- Tap any row → Records filtered to that merchant + period
+- Tap any row → Records filtered to that merchant + period, same mode
 - Empty state message prompts adding a Merchant column to the sheet if none exists
 
 ---
@@ -221,5 +261,6 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 
 - Installable on iOS and Android via browser "Add to Home Screen"
 - Service Worker with network-first strategy: always fetches fresh, caches response, falls back to cache when offline
-- Safe-area support for iOS home indicator and Dynamic Island (top header only)
+- **Auto-update**: when a new version is deployed, the app detects the updated Service Worker, activates it immediately, and reloads automatically — no manual incognito/re-install needed
+- Safe-area support for iOS home indicator and Dynamic Island (top header + nav bar background)
 - `sessionStorage` for auth token and data cache — cleared when the browser session ends
