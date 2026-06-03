@@ -14,6 +14,7 @@ export const SECTION_DEFS = [
   { id: 'weekly',     label: 'Weekly & Day Breakdown' },
   { id: 'recurring',  label: 'Recurring Expenses' },
   { id: 'owes',       label: 'Owes You' },
+  { id: 'planned',    label: 'Planned Expenses' },
 ];
 
 /**

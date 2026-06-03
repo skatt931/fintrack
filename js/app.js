@@ -6,6 +6,7 @@ import { renderBreakdown }                  from './pages/breakdown.js';
 import { renderMerchants }                  from './pages/merchants.js';
 import { renderDaily }                      from './pages/daily.js';
 import { renderSettings }                   from './pages/settings-page.js';
+import { renderPlanned }                    from './pages/planned.js';
 import { getToken, requestToken, clearToken } from './auth.js';
 import { clearCache }                       from './api.js';
 
@@ -22,6 +23,7 @@ function startApp() {
   register('merchants',    renderMerchants);
   register('daily',        renderDaily);
   register('settings',     renderSettings);
+  register('planned',      renderPlanned);
   initRouter('dashboard');
 }
 
@@ -34,6 +36,17 @@ function openMenuSheet() {
     <div class="sheet-backdrop"></div>
     <div class="sheet-panel" id="menu-sheet-panel">
       <div class="sheet-handle"></div>
+      <button class="menu-action" id="menu-planned">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="14" x2="8" y2="14"/>
+          <line x1="12" y1="14" x2="12" y2="14"/>
+        </svg>
+        Planned Expenses
+      </button>
       <button class="menu-action" id="menu-settings">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="12" cy="12" r="3"/>
@@ -69,6 +82,11 @@ function openMenuSheet() {
   };
 
   sheet.querySelector('.sheet-backdrop').addEventListener('click', close);
+
+  sheet.querySelector('#menu-planned').addEventListener('click', () => {
+    close();
+    setTimeout(() => navigate('planned'), 300);
+  });
 
   sheet.querySelector('#menu-settings').addEventListener('click', () => {
     close();

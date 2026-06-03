@@ -10,6 +10,7 @@ const PAGE_TITLES = {
   merchants:    'Merchants',
   daily:        'Daily View',
   settings:     'Settings',
+  planned:      'Planned',
 };
 
 export function register(name, fn) {
