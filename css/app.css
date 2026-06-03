@@ -1829,3 +1829,147 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   padding-top: 14px;
   margin-top: 4px;
 }
+
+/* ── Planned Expenses — Dashboard card ───────────────────────────────────── */
+.planned-dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.planned-dash-card:active { background: var(--surface-2); }
+
+.planned-dash-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+.planned-dash-row:last-of-type { border-bottom: none; }
+.planned-dash-name { flex: 1; color: var(--text); }
+.planned-dash-amt  { font-weight: 700; color: var(--red); flex-shrink: 0; }
+.planned-dash-more { font-size: 0.75rem; color: var(--text-muted); padding: 4px 0; }
+
+.planned-dash-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.planned-dash-total     { color: var(--red); font-weight: 600; }
+.planned-dash-projected { color: var(--green); font-weight: 700; }
+.planned-dash-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ── Planned Expenses — Management page ──────────────────────────────────── */
+.planned-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 32px;
+}
+.planned-section { margin: 0 0 4px; }
+.planned-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+.planned-item-wrap { position: relative; }
+.planned-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s;
+}
+.planned-row:active { background: var(--surface-2); }
+.planned-emoji { font-size: 1.2rem; flex-shrink: 0; }
+.planned-body  { flex: 1; min-width: 0; }
+.planned-main  { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.planned-name  { font-size: 0.88rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.planned-amount { font-size: 0.9rem; font-weight: 700; color: var(--red); flex-shrink: 0; }
+.planned-sub   { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 0.75rem; color: var(--text-muted); }
+.planned-badge {
+  background: rgba(99,102,241,0.15);
+  color: var(--primary-2);
+  border-radius: 99px;
+  padding: 1px 7px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.planned-paid-badge {
+  color: var(--green);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.planned-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.planned-pay-btn {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 0 16px 8px;
+  padding: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--green);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+.planned-pay-btn:active { background: var(--surface-3); }
+.planned-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 16px 16px 0;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: none;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.15s;
+}
+.planned-add-btn:active { opacity: 0.85; }
+.planned-cancelled { margin: 8px 0; }
+.planned-cancelled summary {
+  cursor: pointer;
+  list-style: none;
+  -webkit-tap-highlight-color: transparent;
+}
