@@ -1,6 +1,7 @@
 import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
+import { formatPeriodLabel } from '../utils/format.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
@@ -38,6 +39,10 @@ function fmtDateGroup(str) {
   const d = new Date(str.slice(0, 10));
   if (isNaN(d)) return str.slice(0, 10);
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function fmtPeriodOption(period) {
+  return formatPeriodLabel(period);
 }
 
 function getCurrentPeriod(data, mode) {
@@ -160,6 +165,130 @@ function groupByDate(txns, sortDir = 'desc') {
   );
 }
 
+function openFiltersSheet(el, cats, periods, weeks, periodMode) {
+  const sheet = document.createElement('div');
+  sheet.className = 'sheet-overlay';
+  sheet.innerHTML = `
+    <div class="sheet-backdrop"></div>
+    <div class="sheet-panel records-filter-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <div>
+          <div class="sheet-title">Refine records</div>
+          <div class="sheet-subtitle">Show the most useful controls only when you need them.</div>
+        </div>
+      </div>
+
+      <div class="sheet-fields records-filter-fields">
+        <div class="field-group">
+          <label class="field-label">Period</label>
+          <select class="field-select" id="records-filter-period">
+            ${periods.map(p => `<option value="${p}" ${p === state.filterPeriod ? 'selected' : ''}>${fmtPeriodOption(p)}</option>`).join('')}
+          </select>
+        </div>
+
+        ${weeks.length > 1 ? `
+        <div class="field-group">
+          <label class="field-label">${periodMode === 'billing' ? 'Week in period' : 'Week in month'}</label>
+          <select class="field-select" id="records-filter-week">
+            <option value="">All weeks</option>
+            ${weeks.map(w => `<option value="${w}" ${state.filterWeek === w ? 'selected' : ''}>Week ${w}</option>`).join('')}
+          </select>
+        </div>` : ''}
+
+        <div class="field-group">
+          <label class="field-label">Direction</label>
+          <div class="records-segment" id="records-direction-segment">
+            <button class="records-segment-btn ${state.filterDirection === null ? 'active' : ''}" data-value="">All</button>
+            <button class="records-segment-btn ${state.filterDirection === 'expense' ? 'active' : ''}" data-value="expense">Expenses</button>
+            <button class="records-segment-btn ${state.filterDirection === 'income' ? 'active' : ''}" data-value="income">Income</button>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Category</label>
+          <select class="field-select" id="records-filter-category">
+            <option value="">All categories</option>
+            ${cats.map(c => `<option value="${c}" ${c === state.filterCat ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Sort order</label>
+          <div class="records-segment" id="records-sort-segment">
+            <button class="records-segment-btn ${state.sortDir === 'desc' ? 'active' : ''}" data-value="desc">Newest first</button>
+            <button class="records-segment-btn ${state.sortDir === 'asc' ? 'active' : ''}" data-value="asc">Oldest first</button>
+          </div>
+        </div>
+
+        ${state.filterMerchant ? `
+        <div class="records-filter-note">
+          <div class="records-filter-note-label">Merchant drill-down</div>
+          <div class="records-filter-note-value">${state.filterMerchant}</div>
+        </div>` : ''}
+      </div>
+
+      <div class="sheet-actions">
+        <button class="btn-secondary" id="records-filter-clear">Clear</button>
+        <button class="btn-save" id="records-filter-apply">Apply</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(sheet);
+  const panel = sheet.querySelector('.sheet-panel');
+  requestAnimationFrame(() => panel.classList.add('open'));
+
+  let nextDirection = state.filterDirection || '';
+  let nextSort      = state.sortDir;
+  let nextWeek      = state.filterWeek;
+
+  const close = () => {
+    panel.classList.remove('open');
+    setTimeout(() => sheet.remove(), 280);
+  };
+
+  sheet.querySelector('.sheet-backdrop').addEventListener('click', close);
+
+  sheet.querySelectorAll('#records-direction-segment .records-segment-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      nextDirection = btn.dataset.value || '';
+      sheet.querySelectorAll('#records-direction-segment .records-segment-btn').forEach(node => node.classList.toggle('active', node === btn));
+    });
+  });
+
+  sheet.querySelectorAll('#records-sort-segment .records-segment-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      nextSort = btn.dataset.value || 'desc';
+      sheet.querySelectorAll('#records-sort-segment .records-segment-btn').forEach(node => node.classList.toggle('active', node === btn));
+    });
+  });
+
+  sheet.querySelector('#records-filter-week')?.addEventListener('change', e => {
+    nextWeek = e.target.value ? parseInt(e.target.value, 10) : null;
+  });
+
+  sheet.querySelector('#records-filter-clear').addEventListener('click', () => {
+    state.filterCat       = null;
+    state.filterDirection = null;
+    state.filterMerchant  = null;
+    state.filterWeek      = null;
+    state.sortDir         = 'desc';
+    close();
+    renderPage(el);
+  });
+
+  sheet.querySelector('#records-filter-apply').addEventListener('click', () => {
+    state.filterPeriod    = sheet.querySelector('#records-filter-period').value || state.filterPeriod;
+    state.filterCat       = sheet.querySelector('#records-filter-category').value || null;
+    state.filterDirection = nextDirection || null;
+    state.filterWeek      = nextWeek;
+    state.sortDir         = nextSort || 'desc';
+    close();
+    renderPage(el);
+  });
+}
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export function renderTransactions(el, params = {}) {
@@ -184,6 +313,7 @@ export function renderTransactions(el, params = {}) {
     state.filterMerchant  = null;
     state.filterDirection = null;
     state.search          = '';
+    state.sortDir         = 'desc';
   }
 
   loadData().then(data => {
@@ -212,74 +342,97 @@ function renderPage(el) {
 
   const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
   const groups = groupByDate(txns, sortDir);
+  const visibleIncomeTotal = txns
+    .filter(t => t.direction === 'income')
+    .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+  const visibleExpenseTotal = txns
+    .filter(t => t.direction === 'expense')
+    .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+  const hasSecondaryFilters = Boolean(filterCat || filterDirection || filterMerchant || filterWeek !== null || sortDir !== 'desc');
+  const secondaryCount = [
+    filterCat,
+    filterDirection,
+    filterMerchant,
+    filterWeek !== null ? `week-${filterWeek}` : null,
+    sortDir !== 'desc' ? 'sort' : null,
+  ].filter(Boolean).length;
+  const recordLabel = txns.length === 1 ? 'record' : 'records';
+  const heroSummary = filterDirection === 'income'
+    ? `+${fmt(visibleIncomeTotal)} incoming`
+    : filterDirection === 'expense'
+      ? `${fmt(visibleExpenseTotal)} spent`
+      : `${fmt(visibleExpenseTotal)} spent`;
 
   el.innerHTML = `
     <div class="txn-page">
 
-      <!-- Search + Sort -->
-      <div class="txn-search-wrap">
+      <div class="records-hero">
+        <div>
+          <div class="records-kicker">${periodMode === 'billing' ? 'Billing records' : 'Calendar records'}</div>
+          <div class="records-period">${fmtPeriodOption(filterPeriod)}</div>
+        </div>
+        <div class="records-hero-meta">
+          <span class="records-count">${txns.length} ${recordLabel}</span>
+          <span class="records-flow">${heroSummary}</span>
+        </div>
+      </div>
+
+      <!-- Search + primary controls -->
+      <div class="txn-search-wrap records-toolbar">
         <div class="txn-search">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input id="txn-search" type="search" placeholder="Search…" value="${search}" autocomplete="off">
         </div>
-        <button class="sort-btn ${sortDir === 'asc' ? 'sort-asc' : ''}" id="sort-toggle" title="${sortDir === 'desc' ? 'Newest first — tap to reverse' : 'Oldest first — tap to reverse'}">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            ${sortDir === 'desc'
-              ? '<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>'
-              : '<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>'}
+        <button class="records-refine-btn" id="records-refine-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
           </svg>
-          <span>${sortDir === 'desc' ? 'New→Old' : 'Old→New'}</span>
+          <span>Refine</span>
+          ${secondaryCount ? `<span class="records-refine-count">${secondaryCount}</span>` : ''}
         </button>
       </div>
 
-      <!-- Period mode toggle + filters -->
-      <div class="txn-mode-toggle">
+      <div class="txn-mode-toggle records-mode-toggle">
         <button class="txn-mode-btn ${periodMode === 'billing' ? 'active' : ''}" data-mode="billing">Billing</button>
         <button class="txn-mode-btn ${periodMode === 'calendar' ? 'active' : ''}" data-mode="calendar">Month</button>
       </div>
 
-      <div class="txn-filters">
-        <select id="period-filter" class="filter-select">
-          ${periods.map(p => `<option value="${p}" ${p === filterPeriod ? 'selected' : ''}>${p}</option>`).join('')}
-        </select>
-        <select id="cat-filter" class="filter-select">
-          <option value="">All categories</option>
-          ${cats.map(c => `<option value="${c}" ${c === filterCat ? 'selected' : ''}>${c}</option>`).join('')}
-        </select>
+      ${hasSecondaryFilters ? `
+      <div class="records-active-filters">
         ${filterDirection ? `<button class="filter-clear filter-clear-dir" id="clear-direction">✕ ${filterDirection === 'income' ? 'Income only' : 'Expenses only'}</button>` : ''}
         ${filterCat ? `<button class="filter-clear" id="clear-filter">✕ ${filterCat}</button>` : ''}
         ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">✕ ${filterMerchant}</button>` : ''}
-      </div>
-
-      <!-- Week pills (shown when period has multiple weeks of data) -->
-      ${weeks.length > 1 ? `
-      <div class="week-pills">
-        <button class="week-pill ${filterWeek === null ? 'active' : ''}" data-week="all">All weeks</button>
-        ${weeks.map(w => `<button class="week-pill ${filterWeek === w ? 'active' : ''}" data-week="${w}">Week ${w}</button>`).join('')}
+        ${filterWeek !== null ? `<button class="filter-clear" id="clear-week">✕ Week ${filterWeek}</button>` : ''}
+        ${sortDir !== 'desc' ? `<button class="filter-clear" id="clear-sort">✕ Oldest first</button>` : ''}
+        <button class="filter-clear filter-clear-all" id="clear-all-filters">Clear all</button>
       </div>` : ''}
 
       <!-- List -->
       <div class="txn-list">
         ${groups.length ? groups.map(([day, items]) => `
-          <button class="txn-date-header txn-date-header--link" data-date="${day}">${fmtDateGroup(day)} →</button>
+          <button class="txn-date-header txn-date-header--link" data-date="${day}">
+            <span>${fmtDateGroup(day)}</span>
+            <span class="txn-date-count">${items.length}</span>
+          </button>
           ${items.map(t => {
             const amt      = parseAmount(t.report_amount);
             const isExp    = t.direction === 'expense';
             const review   = t.needs_review === 'TRUE' || t.needs_review === true;
             const merchant = t.merchant || t.description || t.note || t.Merchant || '';
+            const headline = merchant || t.category || (isExp ? 'Expense' : 'Income');
             return `
             <div class="txn-item" data-row="${t._row}">
               ${categoryBadge(isExp ? t.category : 'salary', 'sm')}
               <div class="txn-body">
                 <div class="txn-main">
-                  <span class="txn-category">${t.category || '—'}</span>
+                  <span class="txn-headline">${headline}</span>
                   <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt)}</span>
                 </div>
                 <div class="txn-sub">
+                  ${t.category ? '<span class="txn-category-pill">' + t.category + '</span>' : ''}
                   <span>${t.bank || '—'}</span>
-                  ${merchant ? '<span class="txn-merchant">' + merchant + '</span>' : ''}
                   ${review ? '<span class="txn-badge review">Review</span>' : ''}
                 </div>
               </div>
@@ -292,9 +445,8 @@ function renderPage(el) {
   `;
 
   // Events
-  document.getElementById('sort-toggle').addEventListener('click', () => {
-    state.sortDir = state.sortDir === 'desc' ? 'asc' : 'desc';
-    renderPage(el);
+  document.getElementById('records-refine-btn').addEventListener('click', () => {
+    openFiltersSheet(el, cats, periods, weeks, periodMode);
   });
   document.getElementById('txn-search').addEventListener('input', e => {
     const val   = e.target.value;
@@ -304,10 +456,6 @@ function renderPage(el) {
     // Re-focus after full re-render so the keyboard stays visible on mobile
     const inp = document.getElementById('txn-search');
     if (inp) { inp.focus(); try { inp.setSelectionRange(start, start); } catch (_) {} }
-  });
-  document.getElementById('cat-filter').addEventListener('change', e => {
-    state.filterCat = e.target.value || null;
-    renderPage(el);
   });
   document.getElementById('clear-direction')?.addEventListener('click', () => {
     state.filterDirection = null;
@@ -321,15 +469,22 @@ function renderPage(el) {
     state.filterMerchant = null;
     renderPage(el);
   });
-
-  // Week pills
-  el.querySelectorAll('.week-pill').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const val = btn.dataset.week;
-      state.filterWeek = val === 'all' ? null : parseInt(val);
-      renderPage(el);
-    })
-  );
+  document.getElementById('clear-week')?.addEventListener('click', () => {
+    state.filterWeek = null;
+    renderPage(el);
+  });
+  document.getElementById('clear-sort')?.addEventListener('click', () => {
+    state.sortDir = 'desc';
+    renderPage(el);
+  });
+  document.getElementById('clear-all-filters')?.addEventListener('click', () => {
+    state.filterCat       = null;
+    state.filterDirection = null;
+    state.filterMerchant  = null;
+    state.filterWeek      = null;
+    state.sortDir         = 'desc';
+    renderPage(el);
+  });
 
   // Period mode toggle (Billing ↔ Month)
   el.querySelectorAll('.txn-mode-btn').forEach(btn => {
@@ -341,14 +496,6 @@ function renderPage(el) {
       state.filterMerchant = null;
       renderPage(el);
     });
-  });
-
-  // Period change resets week + merchant filter
-  document.getElementById('period-filter').addEventListener('change', e => {
-    state.filterPeriod   = e.target.value;
-    state.filterWeek     = null;
-    state.filterMerchant = null;
-    renderPage(el);
   });
 
   // Row tap → edit sheet

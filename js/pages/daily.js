@@ -77,34 +77,37 @@ function renderPage(el, date, txns, data) {
   el.innerHTML = `
     <div class="daily-page">
 
-      <!-- Date navigation -->
-      <div class="daily-nav">
-        <button class="daily-nav-btn" id="prev-day" aria-label="Previous day">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <div class="daily-nav-label">
-          ${isToday ? '<span class="daily-today-badge">Today</span>' : ''}
-          <span class="daily-nav-date">${fmtDayFull(date)}</span>
-        </div>
-        <button class="daily-nav-btn" id="next-day" aria-label="Next day" ${isFuture ? 'disabled' : ''}>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
-      </div>
-
-      <!-- Summary header -->
-      ${txns.length > 0 ? `
-      <div class="daily-header">
-        <div class="daily-total">${fmt(total)}</div>
-        <div class="daily-cat-chips">
-          ${topCats.map(([cat]) => categoryBadge(cat, 'sm')).join('')}
-        </div>
-      </div>` : ''}
-
-      <!-- Back link -->
-      <button class="bp-back" id="daily-back">
+      <button class="bp-back daily-back-link" id="daily-back">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Overview
       </button>
+
+      <div class="daily-hero">
+        <div class="daily-nav">
+          <button class="daily-nav-btn" id="prev-day" aria-label="Previous day">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="daily-nav-label">
+            ${isToday ? '<span class="daily-today-badge">Today</span>' : '<span class="daily-today-badge daily-today-badge-muted">Daily view</span>'}
+            <span class="daily-nav-date">${fmtDayFull(date)}</span>
+          </div>
+          <button class="daily-nav-btn" id="next-day" aria-label="Next day" ${isFuture ? 'disabled' : ''}>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+
+        ${txns.length > 0 ? `
+        <div class="daily-header">
+          <div class="daily-total">${fmt(total)}</div>
+          <div class="daily-cat-chips">
+            ${topCats.map(([cat]) => categoryBadge(cat, 'sm')).join('')}
+          </div>
+        </div>` : `
+        <div class="daily-empty-card">
+          <div class="daily-empty-title">Nothing spent</div>
+          <div class="daily-empty-copy">This day is clear, so there is nothing to review here.</div>
+        </div>`}
+      </div>
 
       <!-- Transaction list -->
       <div class="txn-list">
@@ -112,26 +115,23 @@ function renderPage(el, date, txns, data) {
           const amt      = parseAmount(t.report_amount);
           const merchant = t.merchant || t.description || t.note || t.Merchant || '';
           const review   = t.needs_review === 'TRUE' || t.needs_review === true;
+          const headline = merchant || t.category || 'Expense';
           return `
           <div class="txn-item" data-row="${t._row}">
             ${categoryBadge(t.category, 'sm')}
             <div class="txn-body">
               <div class="txn-main">
-                <span class="txn-category">${t.category || '—'}</span>
+                <span class="txn-headline">${headline}</span>
                 <span class="txn-amount expense">−${fmt(amt)}</span>
               </div>
               <div class="txn-sub">
+                ${t.category ? `<span class="txn-category-pill">${t.category}</span>` : ''}
                 <span>${t.bank || '—'}</span>
-                ${merchant ? `<span class="txn-merchant">${merchant}</span>` : ''}
                 ${review   ? '<span class="txn-badge review">Review</span>' : ''}
               </div>
             </div>
           </div>`;
-        }).join('') : `
-        <div class="daily-empty">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.3"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span>Nothing spent on this day.</span>
-        </div>`}
+        }).join('') : ''}
       </div>
 
     </div>

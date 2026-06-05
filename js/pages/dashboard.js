@@ -2,6 +2,7 @@ import { loadData, clearCache, updateBudgetAmount, appendBudgetRow } from '../ap
 import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 import { loadSections }                       from '../settings.js';
+import { formatPeriodLabel }                  from '../utils/format.js';
 
 let donutChart = null;
 let trendChart = null;
@@ -308,8 +309,8 @@ function miniBarOptions(labelCb) {
       },
     },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 10 } } },
-      y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6b7280', font: { size: 10 }, maxTicksLimit: 4,
+      x: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#7b715d', font: { size: 10 } } },
+      y: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#7b715d', font: { size: 10 }, maxTicksLimit: 4,
            callback: v => v >= 1000 ? `${Math.round(v/1000)}k` : v } },
     },
   };
@@ -325,12 +326,7 @@ function buildSections(htmlMap, sections) {
 
 // Format "2026-05" → "May 2026"
 function fmtPeriod(period) {
-  if (!period) return period;
-  if (/^\d{4}-\d{2}$/.test(period)) {
-    const [y, m] = period.split('-');
-    return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-  }
-  return period;
+  return formatPeriodLabel(period);
 }
 
 // Format "2026-04" → "Apr '26"
@@ -424,7 +420,7 @@ function renderPage(el) {
 
   const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
   const todayStripHtml = `
-  <div class="today-strip" id="today-strip">
+  <div class="today-strip clickable-card" id="today-strip">
     <div class="today-strip-left">
       <span class="today-strip-label">TODAY</span>
       <span class="today-strip-date">${todayLabel}</span>
@@ -654,37 +650,52 @@ function renderPage(el) {
         </div>
         <div class="period-nav">
           <button class="period-nav-btn" data-dir="prev" ${periodIndex >= periods.length - 1 ? 'disabled' : ''}>‹</button>
-          <span class="period-label">${period}</span>
+          <span class="period-label">${fmtPeriod(period)}</span>
           <button class="period-nav-btn" data-dir="next" ${periodIndex <= 0 ? 'disabled' : ''}>›</button>
         </div>
       </div>
 
-      <!-- Summary cards -->
-      <div class="summary-grid">
-        <div class="summary-card card-income clickable-card" id="card-income">
-          <div class="card-label">Income</div>
-          <div class="card-value">${fmt(summary.income)}</div>
-          <div class="card-tap-hint">tap to see →</div>
-        </div>
-        <div class="summary-card card-expense clickable-card" id="card-expense">
-          <div class="card-label">Expenses</div>
-          <div class="card-value">${fmt(summary.expenses)}</div>
-          <div class="card-tap-hint">tap to see →</div>
-        </div>
-        <div class="summary-card card-balance">
-          <div class="card-label">Balance</div>
-          <div class="card-value ${summary.balance >= 0 ? 'positive' : 'negative'}">
-            ${summary.balance >= 0 ? '' : '−'} ${fmt(summary.balance)}
+      <!-- Overview hero -->
+      <div class="overview-hero">
+        <div class="overview-hero-top">
+          <div>
+            <div class="overview-kicker">Decision first</div>
+            <div class="overview-title">Safe Limit</div>
           </div>
+          <span class="overview-period-badge">${fmtPeriod(period)}</span>
         </div>
-        <div class="summary-card card-savings">
-          <div class="card-label">Safe Limit</div>
-          <div class="card-value ${safeLimit !== null ? 'positive' : ''}">
-            ${safeLimit !== null ? `${fmt(Math.round(safeLimit))} / day` : '—'}
-          </div>
+
+        <div class="overview-hero-amount ${safeLimit !== null ? 'positive' : 'muted'}">
+          ${safeLimit !== null ? `${fmt(Math.round(safeLimit))} / day` : '—'}
+        </div>
+
+        <div class="overview-hero-subline">
           ${daysUntilPayday !== null
-            ? `<div class="card-tap-hint">payday in ${daysUntilPayday} day${daysUntilPayday === 1 ? '' : 's'}</div>`
-            : ''}
+            ? `<span class="overview-chip">payday in ${daysUntilPayday} day${daysUntilPayday === 1 ? '' : 's'}</span>`
+            : '<span class="overview-chip">no payday found</span>'}
+          <span class="overview-chip overview-chip-spend">
+            Today · ${todayTxns.length > 0 ? fmt(todayTotal) : 'Nothing spent'}
+            ${todayCats.length ? `<span class="overview-chip-icons">${todayCats.map(([cat]) => getCategoryEmoji(cat)).join(' ')}</span>` : ''}
+          </span>
+        </div>
+
+        <div class="summary-grid summary-grid-secondary">
+          <div class="summary-card summary-card-compact card-income clickable-card" id="card-income">
+            <div class="card-label">Income</div>
+            <div class="card-value">${fmt(summary.income)}</div>
+            <div class="card-tap-hint">tap to see →</div>
+          </div>
+          <div class="summary-card summary-card-compact card-expense clickable-card" id="card-expense">
+            <div class="card-label">Expenses</div>
+            <div class="card-value">${fmt(summary.expenses)}</div>
+            <div class="card-tap-hint">tap to see →</div>
+          </div>
+          <div class="summary-card summary-card-compact card-balance summary-card-balance-inline">
+            <div class="card-label">Balance</div>
+            <div class="card-value ${summary.balance >= 0 ? 'positive' : 'negative'}">
+              ${summary.balance >= 0 ? '' : '−'} ${fmt(summary.balance)}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -830,7 +841,7 @@ function renderPage(el) {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 10 },
+              labels: { color: '#7b715d', font: { size: 11 }, boxWidth: 12, padding: 10 },
             },
             tooltip: {
               callbacks: {

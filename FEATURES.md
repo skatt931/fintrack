@@ -5,6 +5,16 @@
 > The Excalidraw architecture diagram (`finance-pwa-architecture.excalidraw`) is a snapshot — it is only redrawn on explicit request and should not be treated as current.
 
 Personal finance tracker backed by Google Sheets. PWA (installable, offline-capable).
+The product includes a broader automation layer built in n8n: transaction ingestion from Gmail, Telegram bot commands for finance operations, and Telegram-delivered summaries with AI commentary.
+
+---
+
+## Product Scope
+
+- The PWA is the main interface for browsing, editing, and analyzing finance data stored in Google Sheets.
+- n8n workflows automate ingestion, classification follow-up, Telegram bot interactions, and report delivery.
+- Google Sheets is the system of record shared by both the PWA and n8n workflows.
+- Telegram is part of the product surface, not a separate side tool: it is used for category confirmation, manual cash entry, and report delivery.
 
 ---
 
@@ -14,17 +24,135 @@ Personal finance tracker backed by Google Sheets. PWA (installable, offline-capa
 - Token stored in `sessionStorage` — not persisted across browser sessions
 - Auto-refresh: token renewed 60 s before expiry; prompts re-auth if refresh fails
 - Sign-out via the ⋮ menu → action sheet → **Sign Out**
+- Sign-in screen uses the same light, editorial-style visual system as the main app shell
+
+---
+
+## Visual Design
+
+- Predominantly light theme with warm paper-toned backgrounds and dark text
+- Shared typography system:
+  - display headings use a serif face for product identity
+  - operational text uses a clean sans-serif face for data readability
+- App shell uses elevated rounded surfaces for header, navigation, cards, sheets, and form controls
+- Sign-in screen now uses a custom illustrated brand mark instead of a generic chart icon
+- PWA browser chrome / install chrome uses a matching light `theme_color`
 
 ---
 
 ## Data Source
 
-- Google Sheets backend — three sheets: **Transactions**, **Budgets**, **Salary Periods**
+- Google Sheets backend — four main sheets used by the product: **Transactions**, **Budgets**, **Salary Periods**, **Planned Expenses**
 - 5-minute session cache minimises API calls; survives tab navigation
 - Cache auto-invalidates after any write (add or edit)
 - Manual **Refresh Data** option in the ⋮ menu forces full reload
 - Cell-level updates via Sheets API v4 (`batchUpdate`)
 - Formula columns (`month`, `billing_period`, `report_amount`, `linked_reimbursement_total`, `reimbursement_status`) are never overwritten — computed by the sheet
+
+### n8n ingestion into the sheet
+
+- A workflow named **Finance Collector** scans Gmail for finance-related messages and writes parsed transactions into the **Transactions** sheet
+- Scan cadence: hourly during the day (`0 9-23 * * *`)
+- Gmail source filter:
+  - Reads up to 30 messages
+  - Only messages from the previous 24 hours
+  - Only messages carrying a dedicated Gmail label (`Label_14`)
+- Duplicate protection:
+  - Existing `email_id` values are loaded from the sheet
+  - Incoming emails with an already-seen Gmail message ID are skipped
+- Some known non-transaction subjects are ignored before AI parsing, including:
+  - `click to pay`
+  - `apple pay`
+  - `bankovní identita`
+  - `confirmation of apple pay activation`
+  - `your card is ready`
+  - `registration`
+- Czech bank emails are parsed through an AI prompt that extracts:
+  - `email_id`, `date`, `bank`, `direction`, `amount`, `currency`, `merchant`, `category`, `description`, `confidence`
+  - `source_subject`, `source_from`, `source_date`, `raw_snippet`
+- Parsed rows are appended to the **Transactions** sheet with review metadata
+- Auto-review rules in the workflow:
+  - `needs_review = true` when confidence is below `0.8`
+  - `needs_review = true` when category is `unknown`
+  - `needs_review = true` when amount is `>= 1000`
+
+---
+
+## Automation Layer
+
+### Finance Collector
+
+- Primary ingestion workflow for bank email notifications
+- Reads Gmail, filters duplicates and ignored subjects, sends the content to an AI parser, and appends valid transactions to Google Sheets
+- Only rows classified as `is_transaction = true` are written
+- After saving a row that still needs human confirmation, the workflow sends a Telegram message with category buttons for quick cleanup
+
+### Telegram Finance Bot
+
+- A workflow named **Finance Telegram Router - merged fixed** handles incoming Telegram messages and callback buttons
+- Supports both regular bot messages and callback queries from inline keyboards
+- Works against the same **Transactions** sheet as the PWA
+
+#### Category confirmation from Telegram
+
+- When the Finance Collector flags or posts a new transaction to Telegram, the bot offers category buttons such as:
+  - Groceries
+  - Restaurants
+  - Transport
+  - Shopping
+  - Subscriptions
+  - Debt
+  - Entertainment
+  - Travel
+  - Dog
+  - Photography
+  - Other
+  - Delivery
+- Tapping a category button updates the matching transaction row by `email_id`
+- The bot also sets:
+  - `needs_review = false`
+  - `review_reason = manual_category`
+- After the update, the Telegram message is edited in place to confirm the new category
+
+#### Manual cash entry from Telegram
+
+- The bot supports manual cash-style expense capture via the `/cash` command
+- The command accepts an amount plus optional free-text description
+- After receiving `/cash`, the bot replies with a category picker
+- Selecting a cash category appends a new expense row to the **Transactions** sheet with:
+  - synthetic `email_id` in the form `cash_<timestamp>`
+  - `bank = cash`
+  - `direction = expense`
+  - `currency = CZK`
+  - `merchant = cash description`
+  - `source_subject = Manual cash entry`
+- After save, the Telegram message is edited to confirm the saved cash transaction
+
+#### Telegram finance summaries
+
+- The Telegram router builds on-demand summaries from the **Transactions** sheet
+- Supported report modes visible in the workflow:
+  - daily summary
+  - weekly summary
+  - monthly summary
+- Weekly and monthly reports:
+  - load rows from the Transactions sheet
+  - ignore rows where `exclude_from_reports = true`
+  - ignore transfers
+  - calculate expense, income, balance, transaction count, and top categories
+- Daily summaries also list same-day transactions and category totals
+- Weekly and monthly summaries call an AI model to generate additional Ukrainian commentary
+- The AI commentary is intentionally constrained to:
+  - use Telegram-friendly emoji structure
+  - avoid markdown formatting
+  - avoid suggesting cuts to fixed / obligatory costs such as housing, rent, utilities, subscriptions, or loan payments
+  - focus optimization suggestions on discretionary spending
+
+### Scheduled Telegram reports
+
+- There is a separate active workflow named **Finance Auto Reports — Daily / Weekly / Monthly**
+- It has 3 triggers and appears to be the scheduled report-delivery layer for recurring Telegram summaries
+- Its internal node graph was not available through MCP in this session, so the exact trigger times and downstream steps were not directly inspectable here
 
 ---
 
@@ -48,7 +176,8 @@ Breakdown and Merchants pages are also reachable by drilling down from Overview 
 
 ### Menu (⋮ button)
 
-Opens an action sheet with three options:
+Opens an action sheet with four options:
+- **Planned Expenses** — opens the Planned Expenses management page
 - **Dashboard Settings** — configure which sections are visible and their order
 - **Refresh Data** — clears cache and reloads all data from Google Sheets
 - **Sign Out** — clears token and cache, returns to sign-in screen
@@ -57,22 +186,35 @@ Opens an action sheet with three options:
 
 ## Overview (Dashboard)
 
-### Summary Cards
+### Overview Hero
 
-Four cards always shown at the top:
+The top of the dashboard is now decision-first rather than four equal-weight metric cards:
+
+- **Safe Limit** is the primary hero metric at the top of the screen
+- The hero also shows the active period as a human-readable badge such as `June 2026`
+- The hero subline surfaces:
+  - `payday in N days` when a future salary period start is available
+  - `no payday found` when it is not
+  - `Today` spend amount with category emojis when today has expenses
+- Safe Limit still uses the same formula: `balance ÷ days until next payday`
+- Safe Limit shows `—` if the balance is negative or there is no future payday
+
+### Secondary Summary Metrics
+
+`Income`, `Expenses`, and `Balance` still appear in the first viewport, but as lower-priority compact cards below the hero:
 
 - **Income** — total income for the period; tap to open Records filtered to income only
 - **Expenses** — total expenses; tap to open Records filtered to expenses only
 - **Balance** — income minus expenses (green if positive, red if negative)
-- **Safe Limit** — daily spending limit = `balance ÷ days until next payday`; sub-label shows "payday in N days"; shows `—` if balance is negative or no future payday found
 
 ### Period Controls
 - Toggle between **Billing Period** (salary-cycle based) and **Calendar Month**
 - Previous / Next navigation buttons to browse historical periods
+- Active period label is shown in a human-readable format such as `May 2026`
 - Billing period boundaries derived from the Salary Periods sheet
 
 ### Today Strip
-- Compact strip below the Summary Cards
+- Compact strip in the configurable dashboard sections below the hero area
 - Shows today's date, total expenses for today, and top category emojis
 - Tapping opens the Daily View for today
 - Shows "Nothing spent" when no expense transactions exist for today
@@ -152,24 +294,40 @@ Four cards always shown at the top:
 
 ### Filters
 - **Search** — real-time, matches category, bank, merchant, and all other fields; pre-filled when navigating from search-based drill-downs
-- **Period dropdown** — select any available billing period or calendar month (list changes with mode)
-- **Category dropdown** — filter to a single category
-- **Week pills** — shown when the period contains multiple weeks; filter by Week 1–5
-- **Active filter chips** — dismissible chips for direction ("Income only" / "Expenses only"), category, and merchant filters applied from drill-down navigation
+- **Refine button** — opens a bottom sheet for secondary controls instead of showing all filters at once
+- **Refine sheet controls**:
+  - period selector with human-readable labels such as `May 2026`
+  - week selector within the active period
+  - direction (`All`, `Expenses`, `Income`)
+  - category
+  - sort order
+- **Active filter chips** — dismissible chips for direction, category, merchant drill-down, active week, and non-default sort state
+- **Clear all** chip removes all secondary filters and resets sort to the default
 
 ### Sort
 - **Sort toggle button** — switches between **New→Old** (default) and **Old→New**
 - Handles mixed date formats from the sheet (DD/MM/YYYY, YYYY-MM-DD, ISO datetime)
 
+### Records Header
+- Top section is a compact summary card rather than a plain filter stack
+- Shows:
+  - current period
+  - whether the view is `Billing` or `Calendar`
+  - visible record count
+  - a compact spend/inflow summary for the visible result set
+- Only search and `Refine` remain visible as primary controls below the summary card
+
 ### Transaction Rows
 - Category emoji badge (tinted background)
-- Category name and amount (+ green for income, − red for expenses)
-- Bank / source name
-- Merchant name (if the sheet has a Merchant column)
+- Merchant / primary text is the first visual line
+- Amount stays on the right (+ green for income, − red for expenses)
+- Category moves into a smaller pill treatment on the metadata row
+- Bank / source name stays visible as secondary metadata
 - "Review" badge for flagged transactions
 
 ### Date Grouping
 - Transactions grouped under date headers (e.g., "Mon, 01 Jan →")
+- Date headers also show the number of visible transactions in that group
 - Groups sorted in the same direction as the active sort
 - **Tapping a date header navigates to the Daily View for that date**
 
@@ -204,8 +362,9 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Shows all **expense** transactions for a single calendar day
 - Accessed by tapping a date header in Records, or the Today strip on Overview
 - **Date navigation** — ← → buttons step through every calendar day (including days with no transactions)
+- **Hero card** — wraps daily navigation and total summary into one elevated section
 - **Header** — total expenses for the day + up to 3 category emoji chips (only shown when transactions exist)
-- **Empty state** — "Nothing spent on this day." shown for days with no expense transactions
+- **Empty state** — uses a dedicated calm card rather than a plain text block
 - **Transaction rows** — same style as Records; tap any row to open the edit bottom sheet
 - Future dates and today's date are disabled in the → navigation button (no forward navigation past today)
 
@@ -221,6 +380,9 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - **Note** — optional text for merchant name or comment; auto-mapped to the first available note-type column in the sheet (merchant, comment, note, etc.)
 - **Validation** — amount > 0, category selected, bank filled, date set; inline error messages
 - **Submission** — appends a new row; formula columns left blank for the sheet to compute; navigates to Records after success; cache is cleared
+- Manual entry is therefore possible in two product surfaces:
+  - directly in the PWA via the Add page
+  - through the Telegram bot for cash expenses
 
 ---
 

@@ -1,6 +1,7 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
+import { formatPeriodLabel } from '../utils/format.js';
 
 const CAT_COLORS = [
   '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
@@ -17,12 +18,7 @@ function fmt(n) {
 }
 
 function fmtPeriod(period) {
-  if (!period) return period;
-  if (/^\d{4}-\d{2}$/.test(period)) {
-    const [y, m] = period.split('-');
-    return new Date(+y, +m - 1, 1).toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-  }
-  return period;
+  return formatPeriodLabel(period);
 }
 
 function getMerchant(t) {
