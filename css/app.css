@@ -726,7 +726,11 @@ body {
 }
 
 /* ── Transactions page ───────────────────────────────────────────────────── */
-.txn-page { display: flex; flex-direction: column; }
+.txn-page {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
 
 .records-hero {
   display: flex;
@@ -935,13 +939,11 @@ body {
 .txn-filters::-webkit-scrollbar { display: none; }
 .records-active-filters {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  padding: 2px 16px 10px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  padding: 10px 16px 12px;
+  min-width: 0;
 }
-.records-active-filters::-webkit-scrollbar { display: none; }
 
 .filter-select {
   flex-shrink: 0;
@@ -959,6 +961,8 @@ body {
 }
 .filter-clear {
   flex-shrink: 0;
+  min-width: 0;
+  max-width: 100%;
   background: rgba(213, 124, 82, 0.12);
   border: 1px solid rgba(213, 124, 82, 0.24);
   border-radius: 99px;
@@ -968,6 +972,8 @@ body {
   padding: 6px 12px;
   cursor: pointer;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .filter-clear-all {
@@ -1121,13 +1127,19 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 2px 8px;
+  padding: 18px 2px 10px;
   background: none;
   border: none;
   color: var(--text);
   cursor: pointer;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
+  border-top: 1px solid rgba(92, 73, 43, 0.08);
+}
+
+.txn-week-header:first-child {
+  border-top: none;
+  padding-top: 8px;
 }
 
 .txn-week-copy {
@@ -2101,7 +2113,7 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   color: var(--text-muted);
   -webkit-tap-highlight-color: transparent;
   transition: color 0.15s;
-  padding: 14px 2px 6px;
+  padding: 10px 2px 6px;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;

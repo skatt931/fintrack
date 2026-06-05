@@ -2,6 +2,7 @@ import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { formatPeriodLabel } from '../utils/format.js';
+import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 import { openEditSheet } from './transactions.js';
 
 function parseAmount(val) {
@@ -36,11 +37,6 @@ function fmtDateGroup(str) {
   const d = new Date(str.slice(0, 10));
   if (isNaN(d)) return str.slice(0, 10);
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-function weekNumForDate(str) {
-  const ms = parseDateMs(str);
-  return ms ? Math.ceil(new Date(ms).getDate() / 7) : null;
 }
 
 function getCurrentPeriod(data, mode) {
@@ -100,9 +96,9 @@ export function renderWeekly(el, params = {}) {
       const period = params.period || getCurrentPeriod(data, mode);
       const key = mode === 'billing' ? 'billing_period' : 'month';
       const periodTxns = data.transactions.filter(t => t.direction === 'expense' && t[key] === period);
-      const weeks = [...new Set(periodTxns.map(t => weekNumForDate(t.date)).filter(Boolean))].sort((a, b) => a - b);
+      const weeks = getWeeksForTransactions(periodTxns, data, mode, period);
       const weekNum = params.weekNum || weeks[0] || 1;
-      const txns = periodTxns.filter(t => weekNumForDate(t.date) === weekNum);
+      const txns = periodTxns.filter(t => getWeekNumberForDate(t.date, data, mode, period) === weekNum);
       renderPage(el, data, { mode, period, weekNum, weeks, txns });
     })
     .catch(err => {

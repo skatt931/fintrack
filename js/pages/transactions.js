@@ -2,13 +2,14 @@ import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { formatPeriodLabel } from '../utils/format.js';
+import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
   data:            null,
   filterPeriod:    null,   // null = current period
   filterCat:       null,   // null = all categories
-  filterWeek:      null,   // null = all weeks, or 1-5 (Math.ceil(day/7))
+  filterWeek:      null,   // null = all weeks within the active period
   filterMerchant:  null,   // null = all merchants
   filterDirection: null,   // null = all, 'income', 'expense'
   search:          '',
@@ -111,8 +112,7 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
   if (filterWeek !== null) {
     list = list.filter(t => {
       if (!t.date) return false;
-      const ms = parseDateMs(t.date);
-      return ms ? Math.ceil(new Date(ms).getDate() / 7) === filterWeek : false;
+      return getWeekNumberForDate(t.date, data, mode, filterPeriod) === filterWeek;
     });
   }
   if (filterMerchant) {
@@ -131,20 +131,6 @@ function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWee
     ? parseDateMs(a.date) - parseDateMs(b.date)
     : parseDateMs(b.date) - parseDateMs(a.date)
   );
-}
-
-// Returns sorted week numbers (1-5) present in the given transaction list
-function getWeeksInPeriod(txns) {
-  const weeks = new Set(
-    txns.map(t => t.date ? Math.ceil(new Date(t.date.slice(0, 10)).getDate() / 7) : null)
-        .filter(Boolean)
-  );
-  return [...weeks].sort((a, b) => a - b);
-}
-
-function weekNumForDateKey(str) {
-  const ms = parseDateMs(str);
-  return ms ? Math.ceil(new Date(ms).getDate() / 7) : null;
 }
 
 // Normalise any date string to YYYY-MM-DD for use as a group key
@@ -170,11 +156,12 @@ function groupByDate(txns, sortDir = 'desc') {
   );
 }
 
-function groupByWeekSections(txns, sortDir = 'desc') {
+function groupByWeekSections(txns, data, period, mode, sortDir = 'desc') {
   const dayGroups = groupByDate(txns, sortDir).map(([day, items]) => ({
     day,
     items,
-    weekNum: weekNumForDateKey(day),
+    weekNum: getWeekNumberForDate(day, data, mode, period),
+    dayMs: parseDateMs(day),
   }));
 
   const weeks = {};
@@ -190,8 +177,11 @@ function groupByWeekSections(txns, sortDir = 'desc') {
       days,
       total: days.reduce((sum, day) => sum + day.items.reduce((daySum, t) => daySum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0), 0),
       count: days.reduce((sum, day) => sum + day.items.length, 0),
+      sortMs: sortDir === 'asc'
+        ? Math.min(...days.map(day => day.dayMs))
+        : Math.max(...days.map(day => day.dayMs)),
     }))
-    .sort((a, b) => sortDir === 'asc' ? a.weekNum - b.weekNum : b.weekNum - a.weekNum);
+    .sort((a, b) => sortDir === 'asc' ? a.sortMs - b.sortMs : b.sortMs - a.sortMs);
 }
 
 function openFiltersSheet(el, cats, periods, weeks, periodMode) {
@@ -367,10 +357,10 @@ function renderPage(el) {
 
   // Get all period txns (without week/merchant filter) to know which weeks exist
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
-  const weeks      = getWeeksInPeriod(periodTxns);
+  const weeks      = getWeeksForTransactions(periodTxns, data, periodMode, filterPeriod);
 
   const txns         = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
-  const weekSections = groupByWeekSections(txns, sortDir);
+  const weekSections = groupByWeekSections(txns, data, filterPeriod, periodMode, sortDir);
   const visibleIncomeTotal = txns
     .filter(t => t.direction === 'income')
     .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
@@ -451,12 +441,10 @@ function renderPage(el) {
             </span>
           </button>
           ${section.days.map(({ day, items }) => {
-            const dayTotal = items.reduce((sum, t) => sum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0);
             return `
             <button class="txn-date-header txn-date-header--link" data-date="${day}">
               <span>${fmtDateGroup(day)}</span>
               <span class="txn-date-meta">
-                ${dayTotal > 0 ? `<span class="txn-date-total">−${fmt(dayTotal)}</span>` : ''}
                 <span class="txn-date-count">${items.length}</span>
               </span>
             </button>

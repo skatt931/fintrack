@@ -253,7 +253,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - ↑ / ↓ / = badge with % change; red = spending more, green = spending less, grey = new
 
 ### Weekly & Day Breakdown _(collapsible)_
-- **By Week**: bar chart of spending per calendar week within the current period; tap a bar → Weekly View for that week
+- **By Week**: bar chart of spending per week within the active billing period or calendar month; week numbering always starts from the beginning of that active period; tap a bar → Weekly View for that week
 - **By Day of Week**: average spend per weekday (Mon–Sun) across all transactions in the period
 - Charts render lazily when section is expanded; destroyed on collapse to free memory
 
@@ -303,10 +303,11 @@ The top of the dashboard is now decision-first rather than four equal-weight met
   - category
   - sort order
 - **Active filter chips** — dismissible chips for direction, category, merchant drill-down, active week, and non-default sort state
+- Active filter chips wrap onto multiple lines instead of forcing horizontal page overflow
 - **Clear all** chip removes all secondary filters and resets sort to the default
 
 ### Sort
-- **Sort toggle button** — switches between **New→Old** (default) and **Old→New**
+- **Sort order** — chosen inside the `Refine` sheet; supports **New→Old** (default) and **Old→New**
 - Handles mixed date formats from the sheet (DD/MM/YYYY, YYYY-MM-DD, ISO datetime)
 
 ### Records Header
@@ -332,8 +333,8 @@ The top of the dashboard is now decision-first rather than four equal-weight met
   - week number
   - visible record count for that week
   - total expense amount for that week
+- Week numbering is relative to the active billing period or month, so cross-month billing periods still show a continuous `Week 1`, `Week 2`, `Week 3` sequence
 - Transactions grouped under date headers (e.g., "Mon, 01 Jan →")
-- Each date header also shows the total expense amount for that day
 - Date headers also show the number of visible transactions in that group
 - Groups sorted in the same direction as the active sort
 - **Tapping a date header navigates to the Daily View for that date**
@@ -382,6 +383,7 @@ A dedicated section at the bottom of the edit sheet with three role options:
 
 - Shows all **expense** transactions for a single week inside the active billing period or calendar month
 - Accessed by tapping a week header in Records
+- Uses the same period-based week numbering as Records and the Overview weekly chart
 - **Week navigation** — ← → buttons step through available weeks in the same active period
 - **Hero card** — shows week number, period label, date range, total expenses, and top category badges
 - **List layout** — transactions remain grouped by day inside the selected week

@@ -3,6 +3,7 @@ import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 import { loadSections }                       from '../settings.js';
 import { formatPeriodLabel }                  from '../utils/format.js';
+import { getWeekNumberForDate }               from '../utils/periodWeek.js';
 
 let donutChart = null;
 let trendChart = null;
@@ -248,13 +249,13 @@ function computePeriodComparison(data, currentPeriod, mode) {
   };
 }
 
-// Spending per calendar-week within the current period's transactions
-function computeWeeklySpending(txns) {
+// Spending per week within the active billing period or month
+function computeWeeklySpending(txns, data, period, mode) {
   const byWeek = {};
   for (const t of txns) {
     if (t.direction !== 'expense' || !t.date) continue;
-    const day  = new Date(t.date.slice(0, 10)).getDate();
-    const week = Math.ceil(day / 7);
+    const week = getWeekNumberForDate(t.date, data, mode, period);
+    if (!week) continue;
     const key  = `Wk ${week}`;
     byWeek[key] = (byWeek[key] || 0) + parseAmount(t.report_amount);
   }
@@ -401,7 +402,7 @@ function renderPage(el) {
 
   const trend       = computeSpendingTrend(data.transactions);
   const comparison  = computePeriodComparison(data, period, mode);
-  const weekly      = computeWeeklySpending(txns);
+  const weekly      = computeWeeklySpending(txns, data, period, mode);
   const dow         = computeDowSpending(txns);
   const recurring   = detectRecurring(data.transactions, mode);
 
