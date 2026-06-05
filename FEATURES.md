@@ -327,6 +327,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Date Grouping
 - Transactions grouped under date headers (e.g., "Mon, 01 Jan →")
+- Each date header also shows the total expense amount for that day
 - Date headers also show the number of visible transactions in that group
 - Groups sorted in the same direction as the active sort
 - **Tapping a date header navigates to the Daily View for that date**

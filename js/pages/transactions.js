@@ -411,10 +411,15 @@ function renderPage(el) {
 
       <!-- List -->
       <div class="txn-list">
-        ${groups.length ? groups.map(([day, items]) => `
+        ${groups.length ? groups.map(([day, items]) => {
+          const dayTotal = items.reduce((sum, t) => sum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0);
+          return `
           <button class="txn-date-header txn-date-header--link" data-date="${day}">
             <span>${fmtDateGroup(day)}</span>
-            <span class="txn-date-count">${items.length}</span>
+            <span class="txn-date-meta">
+              ${dayTotal > 0 ? `<span class="txn-date-total">−${fmt(dayTotal)}</span>` : ''}
+              <span class="txn-date-count">${items.length}</span>
+            </span>
           </button>
           ${items.map(t => {
             const amt      = parseAmount(t.report_amount);
@@ -433,12 +438,12 @@ function renderPage(el) {
                 <div class="txn-sub">
                   ${t.category ? '<span class="txn-category-pill">' + t.category + '</span>' : ''}
                   <span>${t.bank || '—'}</span>
-                  ${review ? '<span class="txn-badge review">Review</span>' : ''}
-                </div>
+                ${review ? '<span class="txn-badge review">Review</span>' : ''}
               </div>
-            </div>`;
+            </div>
+          </div>`;
           }).join('')}
-        `).join('') : '<div class="txn-empty">No transactions found</div>'}
+        `;}).join('') : '<div class="txn-empty">No transactions found</div>'}
       </div>
 
     </div>
