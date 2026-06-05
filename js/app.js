@@ -5,6 +5,7 @@ import { renderAdd }                        from './pages/add.js';
 import { renderBreakdown }                  from './pages/breakdown.js';
 import { renderMerchants }                  from './pages/merchants.js';
 import { renderDaily }                      from './pages/daily.js';
+import { renderWeekly }                     from './pages/weekly.js';
 import { renderSettings }                   from './pages/settings-page.js';
 import { renderPlanned }                    from './pages/planned.js';
 import { getToken, requestToken, clearToken } from './auth.js';
@@ -22,6 +23,7 @@ function startApp() {
   register('breakdown',    renderBreakdown);
   register('merchants',    renderMerchants);
   register('daily',        renderDaily);
+  register('weekly',       renderWeekly);
   register('settings',     renderSettings);
   register('planned',      renderPlanned);
   initRouter('dashboard');

@@ -142,6 +142,11 @@ function getWeeksInPeriod(txns) {
   return [...weeks].sort((a, b) => a - b);
 }
 
+function weekNumForDateKey(str) {
+  const ms = parseDateMs(str);
+  return ms ? Math.ceil(new Date(ms).getDate() / 7) : null;
+}
+
 // Normalise any date string to YYYY-MM-DD for use as a group key
 function normDateKey(str) {
   if (!str) return '';
@@ -163,6 +168,30 @@ function groupByDate(txns, sortDir = 'desc') {
     ? parseDateMs(a) - parseDateMs(b)
     : parseDateMs(b) - parseDateMs(a)
   );
+}
+
+function groupByWeekSections(txns, sortDir = 'desc') {
+  const dayGroups = groupByDate(txns, sortDir).map(([day, items]) => ({
+    day,
+    items,
+    weekNum: weekNumForDateKey(day),
+  }));
+
+  const weeks = {};
+  for (const dayGroup of dayGroups) {
+    const key = dayGroup.weekNum ?? 0;
+    if (!weeks[key]) weeks[key] = [];
+    weeks[key].push(dayGroup);
+  }
+
+  return Object.entries(weeks)
+    .map(([weekKey, days]) => ({
+      weekNum: parseInt(weekKey, 10),
+      days,
+      total: days.reduce((sum, day) => sum + day.items.reduce((daySum, t) => daySum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0), 0),
+      count: days.reduce((sum, day) => sum + day.items.length, 0),
+    }))
+    .sort((a, b) => sortDir === 'asc' ? a.weekNum - b.weekNum : b.weekNum - a.weekNum);
 }
 
 function openFiltersSheet(el, cats, periods, weeks, periodMode) {
@@ -340,8 +369,8 @@ function renderPage(el) {
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
   const weeks      = getWeeksInPeriod(periodTxns);
 
-  const txns   = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
-  const groups = groupByDate(txns, sortDir);
+  const txns         = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
+  const weekSections = groupByWeekSections(txns, sortDir);
   const visibleIncomeTotal = txns
     .filter(t => t.direction === 'income')
     .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
@@ -411,39 +440,50 @@ function renderPage(el) {
 
       <!-- List -->
       <div class="txn-list">
-        ${groups.length ? groups.map(([day, items]) => {
-          const dayTotal = items.reduce((sum, t) => sum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0);
-          return `
-          <button class="txn-date-header txn-date-header--link" data-date="${day}">
-            <span>${fmtDateGroup(day)}</span>
+        ${weekSections.length ? weekSections.map(section => `
+          <button class="txn-week-header txn-week-header--link" data-week="${section.weekNum}">
+            <span class="txn-week-copy">
+              <span class="txn-week-label">Week ${section.weekNum}</span>
+              <span class="txn-week-hint">${section.count} ${section.count === 1 ? 'record' : 'records'}</span>
+            </span>
             <span class="txn-date-meta">
-              ${dayTotal > 0 ? `<span class="txn-date-total">−${fmt(dayTotal)}</span>` : ''}
-              <span class="txn-date-count">${items.length}</span>
+              ${section.total > 0 ? `<span class="txn-date-total">−${fmt(section.total)}</span>` : ''}
             </span>
           </button>
-          ${items.map(t => {
-            const amt      = parseAmount(t.report_amount);
-            const isExp    = t.direction === 'expense';
-            const review   = t.needs_review === 'TRUE' || t.needs_review === true;
-            const merchant = t.merchant || t.description || t.note || t.Merchant || '';
-            const headline = merchant || t.category || (isExp ? 'Expense' : 'Income');
+          ${section.days.map(({ day, items }) => {
+            const dayTotal = items.reduce((sum, t) => sum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0);
             return `
-            <div class="txn-item" data-row="${t._row}">
-              ${categoryBadge(isExp ? t.category : 'salary', 'sm')}
-              <div class="txn-body">
-                <div class="txn-main">
-                  <span class="txn-headline">${headline}</span>
-                  <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt)}</span>
+            <button class="txn-date-header txn-date-header--link" data-date="${day}">
+              <span>${fmtDateGroup(day)}</span>
+              <span class="txn-date-meta">
+                ${dayTotal > 0 ? `<span class="txn-date-total">−${fmt(dayTotal)}</span>` : ''}
+                <span class="txn-date-count">${items.length}</span>
+              </span>
+            </button>
+            ${items.map(t => {
+              const amt      = parseAmount(t.report_amount);
+              const isExp    = t.direction === 'expense';
+              const review   = t.needs_review === 'TRUE' || t.needs_review === true;
+              const merchant = t.merchant || t.description || t.note || t.Merchant || '';
+              const headline = merchant || t.category || (isExp ? 'Expense' : 'Income');
+              return `
+              <div class="txn-item" data-row="${t._row}">
+                ${categoryBadge(isExp ? t.category : 'salary', 'sm')}
+                <div class="txn-body">
+                  <div class="txn-main">
+                    <span class="txn-headline">${headline}</span>
+                    <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt)}</span>
+                  </div>
+                  <div class="txn-sub">
+                    ${t.category ? '<span class="txn-category-pill">' + t.category + '</span>' : ''}
+                    <span>${t.bank || '—'}</span>
+                    ${review ? '<span class="txn-badge review">Review</span>' : ''}
+                  </div>
                 </div>
-                <div class="txn-sub">
-                  ${t.category ? '<span class="txn-category-pill">' + t.category + '</span>' : ''}
-                  <span>${t.bank || '—'}</span>
-                ${review ? '<span class="txn-badge review">Review</span>' : ''}
-              </div>
-            </div>
-          </div>`;
-          }).join('')}
-        `;}).join('') : '<div class="txn-empty">No transactions found</div>'}
+              </div>`;
+            }).join('')}
+          `;}).join('')}
+        `).join('') : '<div class="txn-empty">No transactions found</div>'}
       </div>
 
     </div>
@@ -516,6 +556,12 @@ function renderPage(el) {
   el.querySelectorAll('.txn-date-header--link').forEach(btn => {
     btn.addEventListener('click', () => {
       navigate('daily', { date: btn.dataset.date });
+    });
+  });
+
+  el.querySelectorAll('.txn-week-header--link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigate('weekly', { period: filterPeriod, weekNum: parseInt(btn.dataset.week, 10), mode: periodMode });
     });
   });
 }

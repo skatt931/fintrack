@@ -910,7 +910,7 @@ function renderPage(el) {
               if (!elements.length) return;
               const label   = weekly[elements[0].index][0]; // e.g. 'Wk 3'
               const weekNum = parseInt(label.replace('Wk ', ''));
-              navigate('transactions', { period, weekNum, mode });
+              navigate('weekly', { period, weekNum, mode });
             },
           },
         });

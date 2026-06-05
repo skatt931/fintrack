@@ -170,6 +170,7 @@ Five pages accessible via the bottom tab bar:
 
 Additional pages (not in tab bar):
 - **Daily View** — accessed by tapping any date header in Records, or the Today strip on the Dashboard
+- **Weekly View** — accessed by tapping any week header in Records
 - **Dashboard Settings** — accessed via ⋮ menu → Dashboard Settings
 
 Breakdown and Merchants pages are also reachable by drilling down from Overview cards.
@@ -252,7 +253,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - ↑ / ↓ / = badge with % change; red = spending more, green = spending less, grey = new
 
 ### Weekly & Day Breakdown _(collapsible)_
-- **By Week**: bar chart of spending per calendar week within the current period; tap a bar → Records filtered to that week
+- **By Week**: bar chart of spending per calendar week within the current period; tap a bar → Weekly View for that week
 - **By Day of Week**: average spend per weekday (Mon–Sun) across all transactions in the period
 - Charts render lazily when section is expanded; destroyed on collapse to free memory
 
@@ -326,11 +327,17 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - "Review" badge for flagged transactions
 
 ### Date Grouping
+- Transactions are also clustered under tappable week headers inside Records
+- Each week header shows:
+  - week number
+  - visible record count for that week
+  - total expense amount for that week
 - Transactions grouped under date headers (e.g., "Mon, 01 Jan →")
 - Each date header also shows the total expense amount for that day
 - Date headers also show the number of visible transactions in that group
 - Groups sorted in the same direction as the active sort
 - **Tapping a date header navigates to the Daily View for that date**
+- **Tapping a week header navigates to the Weekly View for that week**
 
 ### Edit Sheet (tap any transaction)
 - Bottom sheet slides up; repositions above the virtual keyboard automatically (using `visualViewport` API)
@@ -368,6 +375,18 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - **Empty state** — uses a dedicated calm card rather than a plain text block
 - **Transaction rows** — same style as Records; tap any row to open the edit bottom sheet
 - Future dates and today's date are disabled in the → navigation button (no forward navigation past today)
+
+---
+
+## Weekly View
+
+- Shows all **expense** transactions for a single week inside the active billing period or calendar month
+- Accessed by tapping a week header in Records
+- **Week navigation** — ← → buttons step through available weeks in the same active period
+- **Hero card** — shows week number, period label, date range, total expenses, and top category badges
+- **List layout** — transactions remain grouped by day inside the selected week
+- **Day headers** — keep daily totals visible and can still be tapped to open the Daily View for that date
+- **Transaction rows** — same style as Records and Daily View; tap any row to open the edit bottom sheet
 
 ---
 

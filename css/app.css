@@ -1116,6 +1116,41 @@ body {
   letter-spacing: 0.01em;
 }
 
+.txn-week-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 2px 8px;
+  background: none;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.txn-week-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.txn-week-label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.txn-week-hint {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
 .records-filter-sheet .sheet-title {
   font-family: var(--font-display);
 }
@@ -2014,6 +2049,42 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
 .daily-empty-copy {
   font-size: 0.86rem;
   line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.weekly-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding-bottom: 24px;
+  gap: 12px;
+}
+
+.weekly-back-link {
+  align-self: flex-start;
+}
+
+.weekly-hero {
+  margin: 0 16px;
+  padding: 10px 10px 14px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at top right, rgba(213, 124, 82, 0.14), transparent 32%),
+    linear-gradient(145deg, rgba(255, 250, 241, 0.96), rgba(247, 238, 220, 0.9));
+  border: 1px solid rgba(92, 73, 43, 0.1);
+  box-shadow: var(--shadow-card);
+}
+
+.weekly-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 8px;
+  gap: 8px;
+}
+
+.weekly-range {
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 

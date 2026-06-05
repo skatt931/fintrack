@@ -9,6 +9,7 @@ const PAGE_TITLES = {
   breakdown:    'Spending',
   merchants:    'Merchants',
   daily:        'Daily View',
+  weekly:       'Weekly View',
   settings:     'Settings',
   planned:      'Planned',
 };
