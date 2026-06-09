@@ -1,18 +1,9 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
-import { formatPeriodLabel } from '../utils/format.js';
+import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 import { openEditSheet } from './transactions.js';
-
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
 
 function parseDateMs(str) {
   if (!str) return 0;
@@ -178,7 +169,7 @@ function renderPage(el, data, { mode, period, weekNum, weeks, txns }) {
               <div class="txn-body">
                 <div class="txn-main">
                   <span class="txn-headline">${headline}</span>
-                  <span class="txn-amount expense">−${fmt(amt)}</span>
+                  <span class="txn-amount expense">−${fmt(amt, t.currency)}</span>
                 </div>
                 <div class="txn-sub">
                   ${t.category ? `<span class="txn-category-pill">${t.category}</span>` : ''}

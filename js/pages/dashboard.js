@@ -2,7 +2,7 @@ import { loadData, clearCache, updateBudgetAmount, appendBudgetRow } from '../ap
 import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 import { loadSections }                       from '../settings.js';
-import { formatPeriodLabel }                  from '../utils/format.js';
+import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate }               from '../utils/periodWeek.js';
 
 let donutChart = null;
@@ -26,16 +26,7 @@ const state = {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
-
-// Sheets returns numbers as formatted strings, e.g. "78,000" — strip thousands separators
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
+// fmt + parseAmount imported from ../utils/format.js (single source of truth).
 
 function getAvailablePeriods(data, mode) {
   if (mode === 'billing') {

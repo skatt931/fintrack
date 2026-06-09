@@ -1,7 +1,7 @@
 import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
-import { formatPeriodLabel } from '../utils/format.js';
+import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -18,15 +18,6 @@ let state = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
 
 function fmtDate(str) {
   if (!str) return '';
@@ -460,7 +451,7 @@ function renderPage(el) {
                 <div class="txn-body">
                   <div class="txn-main">
                     <span class="txn-headline">${headline}</span>
-                    <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt)}</span>
+                    <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt, t.currency)}</span>
                   </div>
                   <div class="txn-sub">
                     ${t.category ? '<span class="txn-category-pill">' + t.category + '</span>' : ''}
@@ -634,7 +625,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
           <div class="sheet-title">${txn.category || 'Transaction'}</div>
           <div class="sheet-subtitle">${fmtDate(txn.date)} · ${txn.bank || '—'}</div>
         </div>
-        <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt)}</div>
+        <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt, txn.currency)}</div>
       </div>
 
       ${extraFields.length ? `
@@ -709,7 +700,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
               <label class="field-label">Link to debt</label>
               <select class="field-select" id="edit-reimb-select">
                 <option value="">— Select open debt or type ID below —</option>
-                ${openDebts.map(d => `<option value="${d.id}" ${existingGroupId === d.id ? 'selected' : ''}>${d.name} · ${fmt(d.amt)} Kč (${d.id})</option>`).join('')}
+                ${openDebts.map(d => `<option value="${d.id}" ${existingGroupId === d.id ? 'selected' : ''}>${d.name} · ${fmt(d.amt)} (${d.id})</option>`).join('')}
               </select>
             </div>` : ''}
             <div class="field-group">

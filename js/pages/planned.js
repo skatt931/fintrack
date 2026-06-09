@@ -1,15 +1,7 @@
 import { loadData, updatePlannedExpense, appendPlannedExpense } from '../api.js';
-import { navigate }         from '../router.js';
-import { getCategoryEmoji } from '../categoryIcons.js';
-
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
+import { navigate }              from '../router.js';
+import { getCategoryEmoji }      from '../categoryIcons.js';
+import { fmt, parseAmount }      from '../utils/format.js';
 
 function fmtDate(str) {
   if (!str) return '—';

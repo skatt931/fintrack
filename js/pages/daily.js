@@ -2,17 +2,9 @@ import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { openEditSheet } from './transactions.js';
+import { fmt, parseAmount } from '../utils/format.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
 
 // Normalise any date string to YYYY-MM-DD
 function normDateKey(str) {
@@ -122,7 +114,7 @@ function renderPage(el, date, txns, data) {
             <div class="txn-body">
               <div class="txn-main">
                 <span class="txn-headline">${headline}</span>
-                <span class="txn-amount expense">−${fmt(amt)}</span>
+                <span class="txn-amount expense">−${fmt(amt, t.currency)}</span>
               </div>
               <div class="txn-sub">
                 ${t.category ? `<span class="txn-category-pill">${t.category}</span>` : ''}

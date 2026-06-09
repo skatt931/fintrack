@@ -1,21 +1,12 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
-import { formatPeriodLabel } from '../utils/format.js';
+import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
 
 const CAT_COLORS = [
   '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
   '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899',
 ];
-
-function parseAmount(val) {
-  if (typeof val === 'number') return val;
-  return parseFloat(String(val).replace(/,/g, '')) || 0;
-}
-
-function fmt(n) {
-  return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.abs(n)) + ' Kč';
-}
 
 function fmtPeriod(period) {
   return formatPeriodLabel(period);

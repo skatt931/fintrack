@@ -472,9 +472,13 @@ A dedicated section at the bottom of the edit sheet with three role options:
 
 ## Currency & Localisation
 
-- All amounts displayed in **Czech Koruna (Kč)** using `cs-CZ` locale formatting (space thousands separator)
+- Numbers formatted with `cs-CZ` locale (space thousands separator)
+- **Per-transaction display uses the transaction's own currency** (col F of Transactions sheet). Known codes are mapped to symbols: `CZK → Kč`, `EUR → €`, `USD → $`, `GBP → £`, `PLN → zł`, `CHF → CHF`. Unknown codes render as the raw ISO code (e.g. "100 NOK"). Empty / missing currency falls back to `Kč`.
+- Sites that show the per-transaction currency: Records list rows, Daily View rows, Weekly View rows, transaction edit sheet header.
+- **Aggregations (Dashboard cards, Spent in Period, By Merchant, Budget vs Actual, Spending Trend, Comparison, Recurring, Owes You, Planned Expenses) currently render in Kč regardless of underlying transaction currencies.** This means totals that include non-CZK transactions are arithmetically wrong (a 4 EUR row is summed as if it were 4 Kč). Full multi-currency aggregation (exchange-rate conversion or per-currency tabs) is a separate refinement — see Option B in the currency display discussion.
 - Period labels: "April 2026" in full headers, "Apr '26" in chart axis labels
 - Date display: "Mon, 01 Jan" in list headers, "01 Jan 2026" in edit sheet
+- Single source of truth for amount/currency formatting: `js/utils/format.js` (`fmt`, `parseAmount`, `currencySymbol`)
 
 ---
 
