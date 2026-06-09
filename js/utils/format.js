@@ -35,7 +35,37 @@ function normalizeCurrency(code) {
  *  separators) into a number. Returns 0 for empty / non-numeric input. */
 export function parseAmount(val) {
   if (typeof val === 'number') return val;
-  return parseFloat(String(val ?? '').replace(/,/g, '')) || 0;
+  const raw = String(val ?? '').trim();
+  if (!raw) return 0;
+
+  // Google Sheets returns formatted values by default, so we normalise common
+  // thousands separators and both decimal conventions before parsing.
+  const compact = raw.replace(/[\s\u00A0\u202F]/g, '');
+  const hasComma = compact.includes(',');
+  const hasDot = compact.includes('.');
+
+  if (hasComma && hasDot) {
+    const lastComma = compact.lastIndexOf(',');
+    const lastDot = compact.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      return parseFloat(compact.replace(/\./g, '').replace(',', '.')) || 0;
+    }
+    return parseFloat(compact.replace(/,/g, '')) || 0;
+  }
+
+  if (hasComma) {
+    const commaCount = compact.split(',').length - 1;
+    if (commaCount === 1) return parseFloat(compact.replace(',', '.')) || 0;
+    return parseFloat(compact.replace(/,/g, '')) || 0;
+  }
+
+  if (hasDot) {
+    const dotCount = compact.split('.').length - 1;
+    if (dotCount === 1) return parseFloat(compact) || 0;
+    return parseFloat(compact.replace(/\./g, '')) || 0;
+  }
+
+  return parseFloat(compact) || 0;
 }
 
 /** Format an amount with the appropriate currency symbol.
@@ -72,14 +102,14 @@ export function getFxRate(txn) {
 
 export function getReportAmount(txn) {
   const rawReportAmount = txn?.report_amount;
+  if (rawReportAmount !== '' && rawReportAmount != null) {
+    return parseAmount(rawReportAmount);
+  }
+
   const originalAmount = getOriginalAmount(txn);
   const fxRate = getFxRate(txn);
   const currency = normalizeCurrency(txn?.currency);
   const hasLocalConversion = originalAmount > 0 && (currency === 'CZK' || fxRate > 0);
-
-  if (!hasLocalConversion && rawReportAmount !== '' && rawReportAmount != null) {
-    return parseAmount(rawReportAmount);
-  }
 
   if (txn?.exclude_from_reports === 'TRUE' || txn?.exclude_from_reports === true) return 0;
   if (txn?.link_role === 'reimbursement') return 0;
