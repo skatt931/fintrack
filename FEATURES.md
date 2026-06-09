@@ -505,3 +505,14 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - **Auto-update**: when a new version is deployed, the app detects the updated Service Worker, activates it immediately, and reloads automatically — no manual incognito/re-install needed
 - Safe-area support for iOS home indicator and Dynamic Island (top header + nav bar background)
 - `sessionStorage` for auth token and data cache — cleared when the browser session ends
+
+### Home-screen icon
+
+- App icon (the smiling-face brand mark on warm paper) lives in `icons/`:
+  - `icon.svg` — source vector
+  - `icon-192.png` — 192 × 192 (Android home screen + manifest)
+  - `icon-512.png` — 512 × 512 (manifest, used by Android app switcher / install prompt)
+  - `apple-touch-icon.png` — 180 × 180 (iOS Home Screen, Apple-preferred size)
+- Manifest declares both PNGs with `purpose: "any maskable"` so Android adaptive icons render correctly
+- After updating the source SVG, regenerate the PNGs with `qlmanage -t -s 512 -o icons icons/icon.svg && mv icons/icon.svg.png icons/icon-512.png && sips -Z 192 icons/icon-512.png --out icons/icon-192.png && sips -Z 180 icons/icon-512.png --out icons/apple-touch-icon.png`
+- **iOS icon refresh:** once a PWA is installed on iOS, the home-screen icon is cached aggressively. To see a new icon, remove the installed PWA from the home screen and re-add it via Safari → Share → Add to Home Screen
