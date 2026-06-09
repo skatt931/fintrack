@@ -396,10 +396,11 @@ body {
 
 .summary-card {
   border-radius: 24px;
-  padding: 18px;
+  padding: 14px 16px;
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-card);
+  min-width: 0;          /* allow content to shrink instead of overflow */
 }
 
 .summary-card-compact {
@@ -459,14 +460,20 @@ body {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .card-value {
   font-family: var(--font-display);
-  font-size: 1.7rem;
+  /* clamp(min, preferred, max) — scales the amount down on narrow screens so
+     "67 000 Kč" doesn't wrap to two lines, but keeps a nice large display
+     size when there's room */
+  font-size: clamp(1.05rem, 4.4vw, 1.55rem);
   font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .card-income  .card-value { color: var(--green); }
 .card-expense .card-value { color: var(--red); }
@@ -479,6 +486,7 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100%;
   padding: 13px 16px;
   border-radius: 14px;
   background: rgba(212, 157, 54, 0.12);
@@ -486,6 +494,17 @@ body {
   color: #8f6517;
   font-size: 0.87rem;
   font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+.review-banner > span { flex: 1; }
+.review-banner-chevron { color: #8f6517; opacity: 0.6; flex-shrink: 0; }
+.review-banner:active {
+  background: rgba(212, 157, 54, 0.2);
+  border-color: rgba(212, 157, 54, 0.36);
 }
 
 /* ── Section titles ──────────────────────────────────────────────────────── */

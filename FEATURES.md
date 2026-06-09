@@ -207,6 +207,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - **Income** — total income for the period; tap to open Records filtered to income only
 - **Expenses** — total expenses; tap to open Records filtered to expenses only
 - **Balance** — income minus expenses (green if positive, red if negative)
+- The amount + currency suffix never wraps onto two lines — `card-value` uses `white-space: nowrap` and a fluid `clamp()` font size so values like "67 000 Kč" stay on a single line even on narrow phones. Cards have reduced vertical padding so they sit at a normal height.
 
 ### Period Controls
 - Toggle between **Billing Period** (salary-cycle based) and **Calendar Month**
@@ -276,7 +277,9 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Needs Review Banner
 - Shown when ≥ 1 transaction has `needs_review = TRUE`
-- Displays count; tap opens Records (no auto-filter applied)
+- Displays the count and a chevron — the whole banner is a button
+- Tap opens Records pre-filtered to **needs-review only** in the current period and mode
+- The Records page shows a dismissible "Needs review" chip while the filter is active; tapping the chip (or "Clear all") removes it
 
 ### Dashboard Settings
 - All sections except Summary Cards and Needs Review Banner are configurable
@@ -315,7 +318,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
   - direction (`All`, `Expenses`, `Income`)
   - category
   - sort order
-- **Active filter chips** — dismissible chips for direction, category, merchant drill-down, active week, and non-default sort state
+- **Active filter chips** — dismissible chips for direction, category, merchant drill-down, active week, needs-review filter, and non-default sort state
 - Active filter chips wrap onto multiple lines instead of forcing horizontal page overflow
 - **Clear all** chip removes all secondary filters and resets sort to the default
 

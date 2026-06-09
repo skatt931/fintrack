@@ -13,6 +13,7 @@ let state = {
   filterWeek:      null,   // null = all weeks within the active period
   filterMerchant:  null,   // null = all merchants
   filterDirection: null,   // null = all, 'income', 'expense'
+  filterNeedsReview: false, // true = only show rows where needs_review === TRUE
   search:          '',
   periodMode:      'billing',
   sortDir:         'desc', // 'desc' = newest first, 'asc' = oldest first
@@ -93,13 +94,14 @@ function parseDateMs(str) {
   return isNaN(t) ? 0 : t;
 }
 
-function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null, sortDir = 'desc', filterDirection = null) {
+function filterTxns(txns, data, filterPeriod, filterCat, search, mode, filterWeek = null, filterMerchant = null, sortDir = 'desc', filterDirection = null, filterNeedsReview = false) {
   let list = txns;
   if (filterPeriod) {
     const key = mode === 'billing' ? 'billing_period' : 'month';
     list = list.filter(t => t[key] === filterPeriod);
   }
-  if (filterDirection) list = list.filter(t => t.direction === filterDirection);
+  if (filterDirection)   list = list.filter(t => t.direction === filterDirection);
+  if (filterNeedsReview) list = list.filter(t => t.needs_review === 'TRUE' || t.needs_review === true);
   if (filterCat) list = list.filter(t => t.category === filterCat);
   if (filterWeek !== null) {
     list = list.filter(t => {
@@ -305,30 +307,34 @@ function openFiltersSheet(el, cats, periods, weeks, periodMode) {
 export function renderTransactions(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined || params.mode !== undefined || params.search !== undefined;
+  const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined || params.mode !== undefined || params.search !== undefined || params.needsReview !== undefined;
 
   if (isDrillDown) {
-    // Coming from dashboard / card / chart — apply the pre-filters
-    if (params.mode      !== undefined) state.periodMode      = params.mode;
-    if (params.search    !== undefined) state.search          = params.search;
-    if (params.category  !== undefined) state.filterCat       = params.category;
-    if (params.period    !== undefined) state.filterPeriod    = params.period;
-    if (params.weekNum   !== undefined) state.filterWeek      = params.weekNum;
-    if (params.merchant  !== undefined) state.filterMerchant  = params.merchant;
-    if (params.direction !== undefined) state.filterDirection = params.direction;
+    // Coming from dashboard / card / chart — apply the pre-filters.
+    // Reset filterNeedsReview by default; drill-down explicitly opts in.
+    state.filterNeedsReview = false;
+    if (params.mode        !== undefined) state.periodMode        = params.mode;
+    if (params.search      !== undefined) state.search            = params.search;
+    if (params.category    !== undefined) state.filterCat         = params.category;
+    if (params.period      !== undefined) state.filterPeriod      = params.period;
+    if (params.weekNum     !== undefined) state.filterWeek        = params.weekNum;
+    if (params.merchant    !== undefined) state.filterMerchant    = params.merchant;
+    if (params.direction   !== undefined) state.filterDirection   = params.direction;
+    if (params.needsReview !== undefined) state.filterNeedsReview = !!params.needsReview;
   } else {
     // Direct nav (tab bar) — reset filters but inherit mode/period from
     // shared view state so the user stays in the same period they were
     // looking at on the Overview / Spending / Merchants pages.
     const shared = getView();
-    state.filterCat       = null;
-    state.filterWeek      = null;
-    state.filterMerchant  = null;
-    state.filterDirection = null;
-    state.search          = '';
-    state.sortDir         = 'desc';
+    state.filterCat         = null;
+    state.filterWeek        = null;
+    state.filterMerchant    = null;
+    state.filterDirection   = null;
+    state.filterNeedsReview = false;
+    state.search            = '';
+    state.sortDir           = 'desc';
     if (shared.mode)   state.periodMode   = shared.mode;
-    state.filterPeriod    = shared.period || null;
+    state.filterPeriod      = shared.period || null;
   }
 
   loadData().then(data => {
@@ -349,7 +355,7 @@ export function renderTransactions(el, params = {}) {
 }
 
 function renderPage(el) {
-  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, filterDirection, search, periodMode, sortDir } = state;
+  const { data, filterPeriod, filterCat, filterWeek, filterMerchant, filterDirection, filterNeedsReview, search, periodMode, sortDir } = state;
 
   // Build period list (sorted desc — index 0 is the newest)
   const periods = periodMode === 'billing'
@@ -367,7 +373,7 @@ function renderPage(el) {
   const periodTxns = filterTxns(data.transactions, data, filterPeriod, null, '', periodMode);
   const weeks      = getWeeksForTransactions(periodTxns, data, periodMode, filterPeriod);
 
-  const txns         = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection);
+  const txns         = filterTxns(data.transactions, data, filterPeriod, filterCat, search, periodMode, filterWeek, filterMerchant, sortDir, filterDirection, filterNeedsReview);
   const weekSections = groupByWeekSections(txns, data, filterPeriod, periodMode, sortDir);
   const visibleIncomeTotal = txns
     .filter(t => t.direction === 'income')
@@ -375,13 +381,14 @@ function renderPage(el) {
   const visibleExpenseTotal = txns
     .filter(t => t.direction === 'expense')
     .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
-  const hasSecondaryFilters = Boolean(filterCat || filterDirection || filterMerchant || filterWeek !== null || sortDir !== 'desc');
+  const hasSecondaryFilters = Boolean(filterCat || filterDirection || filterMerchant || filterWeek !== null || sortDir !== 'desc' || filterNeedsReview);
   const secondaryCount = [
     filterCat,
     filterDirection,
     filterMerchant,
     filterWeek !== null ? `week-${filterWeek}` : null,
     sortDir !== 'desc' ? 'sort' : null,
+    filterNeedsReview ? 'needs-review' : null,
   ].filter(Boolean).length;
   const recordLabel = txns.length === 1 ? 'record' : 'records';
   const heroSummary = filterDirection === 'income'
@@ -441,6 +448,7 @@ function renderPage(el) {
         ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">✕ ${filterMerchant}</button>` : ''}
         ${filterWeek !== null ? `<button class="filter-clear" id="clear-week">✕ Week ${filterWeek}</button>` : ''}
         ${sortDir !== 'desc' ? `<button class="filter-clear" id="clear-sort">✕ Oldest first</button>` : ''}
+        ${filterNeedsReview ? `<button class="filter-clear" id="clear-needs-review">✕ Needs review</button>` : ''}
         <button class="filter-clear filter-clear-all" id="clear-all-filters">Clear all</button>
       </div>` : ''}
 
@@ -526,12 +534,17 @@ function renderPage(el) {
     state.sortDir = 'desc';
     renderPage(el);
   });
+  document.getElementById('clear-needs-review')?.addEventListener('click', () => {
+    state.filterNeedsReview = false;
+    renderPage(el);
+  });
   document.getElementById('clear-all-filters')?.addEventListener('click', () => {
-    state.filterCat       = null;
-    state.filterDirection = null;
-    state.filterMerchant  = null;
-    state.filterWeek      = null;
-    state.sortDir         = 'desc';
+    state.filterCat         = null;
+    state.filterDirection   = null;
+    state.filterMerchant    = null;
+    state.filterWeek        = null;
+    state.filterNeedsReview = false;
+    state.sortDir           = 'desc';
     renderPage(el);
   });
 

@@ -696,13 +696,14 @@ function renderPage(el) {
 
       <!-- Needs-review banner (always shown) -->
       ${summary.needsReview > 0 ? `
-      <div class="review-banner">
+      <button class="review-banner" id="review-banner" type="button">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" flex-shrink="0">
           <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="0.5" fill="currentColor"/>
         </svg>
         <span>${summary.needsReview} transaction${summary.needsReview > 1 ? 's' : ''} need${summary.needsReview === 1 ? 's' : ''} review</span>
-      </div>` : ''}
+        <svg class="review-banner-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>` : ''}
 
       <!-- Configurable sections — ordered + filtered by Dashboard Settings -->
       ${buildSections(sectionHtmlMap, loadSections())}
@@ -773,6 +774,11 @@ function renderPage(el) {
   // Today strip → daily view for today
   el.querySelector('#today-strip')?.addEventListener('click', () => {
     navigate('daily', { date: new Date().toISOString().slice(0, 10) });
+  });
+
+  // Needs-review banner → Records, filtered to needs_review=TRUE in the current period+mode
+  el.querySelector('#review-banner')?.addEventListener('click', () => {
+    navigate('transactions', { needsReview: true, period, mode });
   });
 
   // Income card → transactions filtered to income only
