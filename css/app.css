@@ -2495,3 +2495,38 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
   list-style: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ── Records period arrows ──────────────────────────────────────────────── */
+.records-hero-left {
+  min-width: 0;
+}
+.records-period-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: -6px; /* let the left arrow visually align with the kicker */
+}
+.records-period-row .records-period {
+  flex: 0 1 auto;
+}
+.records-period-arrow {
+  background: rgba(92, 73, 43, 0.08);
+  border: 1px solid rgba(92, 73, 43, 0.12);
+  border-radius: 999px;
+  color: var(--accent);
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.records-period-arrow:active { background: rgba(92, 73, 43, 0.18); }
+.records-period-arrow:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}

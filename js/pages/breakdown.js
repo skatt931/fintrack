@@ -2,6 +2,7 @@ import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
 import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { getView, setView }                    from '../viewState.js';
 
 // Same palette as the dashboard donut chart
 const CAT_COLORS = [
@@ -16,7 +17,11 @@ function fmtPeriod(period) {
 export function renderBreakdown(el, params = {}) {
   el.innerHTML = `<div class="loading"><div class="spinner"></div><span>Loading…</span></div>`;
 
-  const { period, mode = 'billing' } = params;
+  // Drill-down params take precedence; otherwise inherit from shared view state
+  const shared = getView();
+  const mode   = params.mode   || shared.mode   || 'billing';
+  const period = params.period || shared.period || null;
+  setView({ mode, period });
 
   loadData().then(data => {
     const key  = mode === 'billing' ? 'billing_period' : 'month';

@@ -291,7 +291,20 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Period Mode Toggle
 - **Billing / Month** pill toggle at the top — switches between billing-period and calendar-month grouping
-- Switching mode resets the period dropdown to the current period in the new mode
+- Switching mode resets the period to the current period in the new mode
+
+### Period Navigation
+- **Hero block** at the top of Records shows the active period (e.g. "May 2026") with `‹` and `›` arrow buttons either side
+- Arrows step backward and forward through available periods one at a time (oldest periods to the left, newest to the right)
+- Arrows are disabled when at the oldest / newest period
+- The same period can also be picked from the Refine sheet (period dropdown) — both controls stay in sync
+- Switching period clears the active week and merchant filters so the new period starts fresh
+
+### Shared period state across pages
+- The selected period mode (Billing / Month) and current period are remembered across Overview, Records, Spending Breakdown, and Merchants pages within a session
+- Example: viewing **June** in **Calendar Month** mode on Overview and tapping the Records tab now opens Records with the same June + Calendar Month context (instead of resetting to Billing + current period)
+- Drill-down navigation (tapping a category card, "tap to see →" on Income/Expenses, etc.) still passes its own explicit mode + period — those take precedence over the shared state
+- Stored in memory only — resets to default (Billing) on full reload
 
 ### Filters
 - **Search** — real-time, matches category, bank, merchant, and all other fields; pre-filled when navigating from search-based drill-downs

@@ -3,6 +3,7 @@ import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
+import { setView, getView }                    from '../viewState.js';
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let state = {
@@ -307,7 +308,7 @@ export function renderTransactions(el, params = {}) {
   const isDrillDown = params.category !== undefined || params.period !== undefined || params.weekNum !== undefined || params.merchant !== undefined || params.direction !== undefined || params.mode !== undefined || params.search !== undefined;
 
   if (isDrillDown) {
-    // Coming from dashboard — apply the pre-filters
+    // Coming from dashboard / card / chart — apply the pre-filters
     if (params.mode      !== undefined) state.periodMode      = params.mode;
     if (params.search    !== undefined) state.search          = params.search;
     if (params.category  !== undefined) state.filterCat       = params.category;
@@ -316,20 +317,31 @@ export function renderTransactions(el, params = {}) {
     if (params.merchant  !== undefined) state.filterMerchant  = params.merchant;
     if (params.direction !== undefined) state.filterDirection = params.direction;
   } else {
-    // Direct nav (tab bar) — always reset filters so nothing is stale
+    // Direct nav (tab bar) — reset filters but inherit mode/period from
+    // shared view state so the user stays in the same period they were
+    // looking at on the Overview / Spending / Merchants pages.
+    const shared = getView();
     state.filterCat       = null;
-    state.filterPeriod    = null;
     state.filterWeek      = null;
     state.filterMerchant  = null;
     state.filterDirection = null;
     state.search          = '';
     state.sortDir         = 'desc';
+    if (shared.mode)   state.periodMode   = shared.mode;
+    state.filterPeriod    = shared.period || null;
   }
 
   loadData().then(data => {
     state.data = data;
-    // Set period to current if not already set by drill-down
-    if (!state.filterPeriod) state.filterPeriod = getCurrentPeriod(data, state.periodMode);
+    // If the shared period isn't valid for this mode, fall back to current
+    const availablePeriods = state.periodMode === 'billing'
+      ? [...new Set(data.salaryPeriods.map(p => p.period).filter(Boolean))]
+      : [...new Set(data.transactions.map(t => t.month).filter(Boolean))];
+    if (!state.filterPeriod || !availablePeriods.includes(state.filterPeriod)) {
+      state.filterPeriod = getCurrentPeriod(data, state.periodMode);
+    }
+    // Push the resolved view back so other pages stay in sync
+    setView({ mode: state.periodMode, period: state.filterPeriod });
     renderPage(el);
   }).catch(err => {
     el.innerHTML = `<div class="txn-page"><div class="error-msg">${err.message}</div></div>`;
@@ -339,10 +351,15 @@ export function renderTransactions(el, params = {}) {
 function renderPage(el) {
   const { data, filterPeriod, filterCat, filterWeek, filterMerchant, filterDirection, search, periodMode, sortDir } = state;
 
-  // Build period list
+  // Build period list (sorted desc — index 0 is the newest)
   const periods = periodMode === 'billing'
     ? [...new Set(data.salaryPeriods.map(p => p.period).filter(Boolean))].sort().reverse()
     : [...new Set(data.transactions.map(t => t.month).filter(Boolean))].sort().reverse();
+
+  // Index of the current period in the array — used for prev/next arrows
+  const currentPeriodIdx = periods.indexOf(filterPeriod);
+  const hasOlderPeriod   = currentPeriodIdx >= 0 && currentPeriodIdx < periods.length - 1;
+  const hasNewerPeriod   = currentPeriodIdx > 0;
 
   const cats = getCategories(data);
 
@@ -377,9 +394,17 @@ function renderPage(el) {
     <div class="txn-page">
 
       <div class="records-hero">
-        <div>
+        <div class="records-hero-left">
           <div class="records-kicker">${periodMode === 'billing' ? 'Billing records' : 'Calendar records'}</div>
-          <div class="records-period">${fmtPeriodOption(filterPeriod)}</div>
+          <div class="records-period-row">
+            <button class="records-period-arrow" data-dir="prev" ${!hasOlderPeriod ? 'disabled' : ''} aria-label="Previous period">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="records-period">${fmtPeriodOption(filterPeriod)}</div>
+            <button class="records-period-arrow" data-dir="next" ${!hasNewerPeriod ? 'disabled' : ''} aria-label="Next period">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="records-hero-meta">
           <span class="records-count">${txns.length} ${recordLabel}</span>
@@ -518,6 +543,25 @@ function renderPage(el) {
       state.filterPeriod  = getCurrentPeriod(data, state.periodMode);
       state.filterWeek    = null;
       state.filterMerchant = null;
+      setView({ mode: state.periodMode, period: state.filterPeriod });
+      renderPage(el);
+    });
+  });
+
+  // Period arrows on the hero block — step prev/next through the periods array
+  el.querySelectorAll('.records-period-arrow').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      const idx = periods.indexOf(state.filterPeriod);
+      if (idx < 0) return;
+      const newIdx = btn.dataset.dir === 'prev'
+        ? Math.min(periods.length - 1, idx + 1)   // older
+        : Math.max(0, idx - 1);                    // newer
+      if (newIdx === idx) return;
+      state.filterPeriod   = periods[newIdx];
+      state.filterWeek     = null;
+      state.filterMerchant = null;
+      setView({ mode: state.periodMode, period: state.filterPeriod });
       renderPage(el);
     });
   });

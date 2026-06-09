@@ -3,6 +3,7 @@ import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 import { loadSections }                       from '../settings.js';
 import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { setView }                              from '../viewState.js';
 import { getWeekNumberForDate }               from '../utils/periodWeek.js';
 
 let donutChart = null;
@@ -370,6 +371,8 @@ function renderPage(el) {
   }
 
   const period            = periods[periodIndex];
+  // Share the current view so Records / Spending / Merchants inherit it
+  setView({ mode, period });
   const txns              = filterTxns(data, period, mode);
   const summary           = computeSummary(txns);
   const daysUntilPayday   = computeDaysUntilPayday(data.salaryPeriods);
