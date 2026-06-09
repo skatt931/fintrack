@@ -33,6 +33,20 @@ export function navigate(page, params = {}) {
   const renderer = routes[page];
   if (renderer) renderer(content, params);
   else content.innerHTML = '<p class="error-msg" style="margin:24px">Page not found.</p>';
+
+  // Always reset scroll to top when navigating to a new page so the user
+  // doesn't land mid-page (the .page-content container is reused across
+  // pages — without this it inherits the previous page's scroll position).
+  // Use rAF so it runs after the renderer has populated the DOM.
+  requestAnimationFrame(() => {
+    if (content) content.scrollTop = 0;
+    // Some renderers swap innerHTML asynchronously after loadData(); reset
+    // again on the next frame so we still land at the top after the data
+    // arrives and the real content paints.
+    requestAnimationFrame(() => {
+      if (content) content.scrollTop = 0;
+    });
+  });
 }
 
 export function getCurrentPage()   { return current; }
