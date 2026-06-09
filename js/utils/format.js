@@ -101,15 +101,16 @@ export function getFxRate(txn) {
 }
 
 export function getReportAmount(txn) {
-  const rawReportAmount = txn?.report_amount;
-  if (rawReportAmount !== '' && rawReportAmount != null) {
-    return parseAmount(rawReportAmount);
+  // The sheet's report_amount formula is the authoritative analytics value.
+  // If the column exists on the row, mirror it exactly instead of trying to
+  // reconstruct debt / reimbursement / transfer logic locally.
+  if (txn && Object.prototype.hasOwnProperty.call(txn, 'report_amount')) {
+    return parseAmount(txn.report_amount);
   }
 
   const originalAmount = getOriginalAmount(txn);
   const fxRate = getFxRate(txn);
   const currency = normalizeCurrency(txn?.currency);
-  const hasLocalConversion = originalAmount > 0 && (currency === 'CZK' || fxRate > 0);
 
   if (txn?.exclude_from_reports === 'TRUE' || txn?.exclude_from_reports === true) return 0;
   if (txn?.link_role === 'reimbursement') return 0;
