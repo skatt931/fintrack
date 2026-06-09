@@ -123,3 +123,18 @@ export function getReportAmount(txn) {
 
   return convertedAmount;
 }
+
+export function getTransactionAmountDisplay(txn) {
+  const originalAmount = getOriginalAmount(txn);
+  const reportAmount = getReportAmount(txn);
+  const currency = normalizeCurrency(txn?.currency);
+  const showReportAmount = currency !== 'CZK' && reportAmount > 0;
+
+  return {
+    originalAmount,
+    reportAmount,
+    originalLabel: fmt(originalAmount, currency),
+    reportLabel: fmt(reportAmount),
+    showReportAmount,
+  };
+}

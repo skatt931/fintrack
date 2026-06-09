@@ -1065,8 +1065,21 @@ body {
   flex-shrink: 0;
   letter-spacing: -0.01em;
 }
+.txn-amount-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
 .txn-amount.expense { color: var(--red); }
 .txn-amount.income  { color: var(--green); }
+.txn-amount-secondary {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
 
 .txn-sub {
   display: flex;
@@ -1278,9 +1291,20 @@ body {
 }
 .sheet-title    { font-size: 1.05rem; font-weight: 700; }
 .sheet-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+.sheet-amount-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
 .sheet-amount   { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.02em; }
 .sheet-amount.expense { color: var(--red); }
 .sheet-amount.income  { color: var(--green); }
+.sheet-amount-secondary {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
 
 .sheet-extras {
   background: var(--surface-2);

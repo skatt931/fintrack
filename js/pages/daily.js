@@ -2,7 +2,7 @@ import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { openEditSheet } from './transactions.js';
-import { fmt, getOriginalAmount, getReportAmount } from '../utils/format.js';
+import { fmt, getReportAmount, getTransactionAmountDisplay } from '../utils/format.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -104,7 +104,7 @@ function renderPage(el, date, txns, data) {
       <!-- Transaction list -->
       <div class="txn-list">
         ${txns.length > 0 ? txns.map(t => {
-          const amt      = getOriginalAmount(t);
+          const amountDisplay = getTransactionAmountDisplay(t);
           const merchant = t.merchant || t.description || t.note || t.Merchant || '';
           const review   = t.needs_review === 'TRUE' || t.needs_review === true;
           const headline = merchant || t.category || 'Expense';
@@ -114,7 +114,10 @@ function renderPage(el, date, txns, data) {
             <div class="txn-body">
               <div class="txn-main">
                 <span class="txn-headline">${headline}</span>
-                <span class="txn-amount expense">−${fmt(amt, t.currency)}</span>
+                <span class="txn-amount-stack">
+                  <span class="txn-amount expense">−${amountDisplay.originalLabel}</span>
+                  ${amountDisplay.showReportAmount ? `<span class="txn-amount-secondary">${amountDisplay.reportLabel}</span>` : ''}
+                </span>
               </div>
               <div class="txn-sub">
                 ${t.category ? `<span class="txn-category-pill">${t.category}</span>` : ''}
