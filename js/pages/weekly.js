@@ -1,7 +1,7 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
-import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, getOriginalAmount, getReportAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 import { openEditSheet } from './transactions.js';
 
@@ -99,11 +99,11 @@ export function renderWeekly(el, params = {}) {
 
 function renderPage(el, data, { mode, period, weekNum, weeks, txns }) {
   const groups = groupByDate(txns);
-  const total = txns.reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+  const total = txns.reduce((sum, t) => sum + getReportAmount(t), 0);
   const byCat = {};
   for (const t of txns) {
     const cat = t.category || 'Uncategorized';
-    byCat[cat] = (byCat[cat] || 0) + parseAmount(t.report_amount);
+    byCat[cat] = (byCat[cat] || 0) + getReportAmount(t);
   }
   const topCats = Object.entries(byCat).sort(([, a], [, b]) => b - a).slice(0, 3);
   const index = weeks.indexOf(weekNum);
@@ -149,7 +149,7 @@ function renderPage(el, data, { mode, period, weekNum, weeks, txns }) {
 
       <div class="txn-list">
         ${groups.length ? groups.map(([day, items]) => {
-          const dayTotal = items.reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+          const dayTotal = items.reduce((sum, t) => sum + getReportAmount(t), 0);
           return `
           <button class="txn-date-header txn-date-header--link" data-date="${day}">
             <span>${fmtDateGroup(day)}</span>
@@ -159,7 +159,7 @@ function renderPage(el, data, { mode, period, weekNum, weeks, txns }) {
             </span>
           </button>
           ${items.map(t => {
-            const amt = parseAmount(t.report_amount);
+            const amt = getOriginalAmount(t);
             const merchant = t.merchant || t.description || t.note || t.Merchant || '';
             const review = t.needs_review === 'TRUE' || t.needs_review === true;
             const headline = merchant || t.category || 'Expense';

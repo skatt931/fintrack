@@ -1,7 +1,7 @@
 import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
-import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, getFxRate, getOriginalAmount, getReportAmount, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 import { setView, getView }                    from '../viewState.js';
 
@@ -169,7 +169,7 @@ function groupByWeekSections(txns, data, period, mode, sortDir = 'desc') {
     .map(([weekKey, days]) => ({
       weekNum: parseInt(weekKey, 10),
       days,
-      total: days.reduce((sum, day) => sum + day.items.reduce((daySum, t) => daySum + (t.direction === 'expense' ? parseAmount(t.report_amount) : 0), 0), 0),
+      total: days.reduce((sum, day) => sum + day.items.reduce((daySum, t) => daySum + (t.direction === 'expense' ? getReportAmount(t) : 0), 0), 0),
       count: days.reduce((sum, day) => sum + day.items.length, 0),
       sortMs: sortDir === 'asc'
         ? Math.min(...days.map(day => day.dayMs))
@@ -377,10 +377,10 @@ function renderPage(el) {
   const weekSections = groupByWeekSections(txns, data, filterPeriod, periodMode, sortDir);
   const visibleIncomeTotal = txns
     .filter(t => t.direction === 'income')
-    .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+    .reduce((sum, t) => sum + getReportAmount(t), 0);
   const visibleExpenseTotal = txns
     .filter(t => t.direction === 'expense')
-    .reduce((sum, t) => sum + parseAmount(t.report_amount), 0);
+    .reduce((sum, t) => sum + getReportAmount(t), 0);
   const hasSecondaryFilters = Boolean(filterCat || filterDirection || filterMerchant || filterWeek !== null || sortDir !== 'desc' || filterNeedsReview);
   const secondaryCount = [
     filterCat,
@@ -473,7 +473,7 @@ function renderPage(el) {
               </span>
             </button>
             ${items.map(t => {
-              const amt      = parseAmount(t.report_amount);
+              const amt      = getOriginalAmount(t);
               const isExp    = t.direction === 'expense';
               const review   = t.needs_review === 'TRUE' || t.needs_review === true;
               const merchant = t.merchant || t.description || t.note || t.Merchant || '';
@@ -612,7 +612,9 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
     ])
   ].sort();
 
-  const amt    = parseAmount(txn.report_amount);
+  const originalAmt = getOriginalAmount(txn);
+  const reportAmt   = getReportAmount(txn);
+  const fxRate      = getFxRate(txn);
   const isExp  = txn.direction === 'expense';
   const review = txn.needs_review === 'TRUE' || txn.needs_review === true;
 
@@ -660,7 +662,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
 
   // Extra display-only fields — everything not handled by a dedicated editor
   const knownFields = new Set([
-    'email_id','date','bank','direction','amount','currency',
+    'email_id','date','bank','direction','amount','currency','fx_rate',
     'category','month','billing_period','needs_review','report_amount','_row',
     // Debt / reimbursement — handled by the dedicated Debt section below
     'link_role','linked_group_id','expected_reimbursement',
@@ -668,7 +670,12 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
     ...(merchantField ? [merchantField] : []),
     ...(commentField  ? [commentField]  : []),
   ]);
-  const extraFields = Object.entries(txn).filter(([k]) => !knownFields.has(k) && !k.startsWith('_') && txn[k]);
+  const extraFields = [
+    ...((txn.currency || 'CZK').toUpperCase() !== 'CZK' && fxRate > 0
+      ? [['fx_rate', fxRate.toFixed(3)], ['report_amount_czk', fmt(reportAmt)]]
+      : []),
+    ...Object.entries(txn).filter(([k]) => !knownFields.has(k) && !k.startsWith('_') && txn[k]),
+  ];
 
   const sheet = document.createElement('div');
   sheet.className = 'sheet-overlay';
@@ -682,7 +689,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
           <div class="sheet-title">${txn.category || 'Transaction'}</div>
           <div class="sheet-subtitle">${fmtDate(txn.date)} · ${txn.bank || '—'}</div>
         </div>
-        <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(amt, txn.currency)}</div>
+        <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(originalAmt, txn.currency)}</div>
       </div>
 
       ${extraFields.length ? `
@@ -739,7 +746,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
             <div class="field-group">
               <label class="field-label">Expected back (Kč)</label>
               <input class="field-input" id="edit-debt-expected" type="number" min="0" step="1"
-                     value="${existingExpected || (isExp ? Math.round(amt) : '')}"
+                     value="${existingExpected || (isExp ? Math.round(reportAmt) : '')}"
                      placeholder="Amount you expect to receive back">
             </div>
             <div class="field-group">

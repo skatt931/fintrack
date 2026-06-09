@@ -27,9 +27,9 @@
 
 ---
 
-## Transactions Tab — Columns A:AB
+## Transactions Tab — Columns A:AC
 
-> Columns A and K:N are hidden by the user (not deleted).
+> Columns A and L:O are hidden by the user (not deleted).
 
 | Col | Field | Notes |
 |-----|-------|-------|
@@ -39,28 +39,29 @@
 | D | `direction` | Dropdown: `expense` / `income` / `transfer`. Drives dashboards + `report_amount`. |
 | E | `amount` | Raw numeric amount (always the bank truth). Used in linking; dashboards prefer `report_amount`. |
 | F | `currency` | Default CZK. |
-| G | `merchant` | Intended for merchant→category mapping; often blank. |
-| H | `category` | Dropdown validated from `Budgets.all_categories`. Drives budgets + category charts. |
-| I | `description` | Human-readable info. |
-| J | `confidence` | AI/parser confidence score. Used for quality checks. |
-| K | `source_subject` | Debug/audit. Hidden. |
-| L | `source_from` | Debug/audit. Hidden. |
-| M | `source_date` | Debug/audit. Hidden. |
-| N | `raw_snippet` | Debug/audit. Hidden. |
-| O | `needs_review` | Checkbox. Flags uncertain rows for human review. |
-| P | `review_reason` | Reason string for the review flag. |
-| Q | `month` | **Auto** — ARRAYFORMULA from `date`, formatted `YYYY-MM`. Calendar-month analytics key. |
-| R | `type` | Auto or manual. Classifies special cases (transfer, reimbursement, normal). |
-| S | `manual_override` | Checkbox. Marks user-corrected rows (training signal / audit). |
-| T | `user_comment` | Free notes. Shown in attention queue. |
-| U | `billing_period` | **Auto** — mapped from `Salary Periods.start_date`. Salary-cycle analytics key. |
-| V | `exclude_from_reports` | Checkbox. If TRUE → `report_amount` = 0. Master "ignore" switch. |
-| W | `linked_group_id` | Manual. Groups an expense with its reimbursements or transfer pair. |
-| X | `link_role` | Dropdown: `original_expense` / `reimbursement` / `transfer_pair`. Drives `report_amount`. |
-| Y | `expected_reimbursement` | Manual. Expected reimbursement amount for an `original_expense` row. |
-| Z | `linked_reimbursement_total` | **Auto** — sums reimbursement `amount` values for same `linked_group_id`. |
-| AA | `report_amount` | **Auto — the value all dashboards use.** Rules: exclude→0; reimbursement→0; transfer→0; original_expense→`max(amount − linked_reimbursement_total, 0)`; else→`amount`. |
-| AB | `reimbursement_status` | **Auto** — `Waiting` / `Partial` / `Settled` based on expected vs received. |
+| G | `fx_rate` | Stored exchange rate into CZK. Use `1` for CZK rows; non-CZK rows should store the historical rate for that transaction date. |
+| H | `merchant` | Intended for merchant→category mapping; often blank. |
+| I | `category` | Dropdown validated from `Budgets.all_categories`. Drives budgets + category charts. |
+| J | `description` | Human-readable info. |
+| K | `confidence` | AI/parser confidence score. Used for quality checks. |
+| L | `source_subject` | Debug/audit. Hidden. |
+| M | `source_from` | Debug/audit. Hidden. |
+| N | `source_date` | Debug/audit. Hidden. |
+| O | `raw_snippet` | Debug/audit. Hidden. |
+| P | `needs_review` | Checkbox. Flags uncertain rows for human review. |
+| Q | `review_reason` | Reason string for the review flag. |
+| R | `month` | **Auto** — ARRAYFORMULA from `date`, formatted `YYYY-MM`. Calendar-month analytics key. |
+| S | `type` | Auto or manual. Classifies special cases (transfer, reimbursement, normal). |
+| T | `manual_override` | Checkbox. Marks user-corrected rows (training signal / audit). |
+| U | `user_comment` | Free notes. Shown in attention queue. |
+| V | `billing_period` | **Auto** — mapped from `Salary Periods.start_date`. Salary-cycle analytics key. |
+| W | `exclude_from_reports` | Checkbox. If TRUE → `report_amount` = 0. Master "ignore" switch. |
+| X | `linked_group_id` | Manual. Groups an expense with its reimbursements or transfer pair. |
+| Y | `link_role` | Dropdown: `original_expense` / `reimbursement` / `transfer_pair`. Drives `report_amount`. |
+| Z | `expected_reimbursement` | Manual. Expected reimbursement amount for an `original_expense` row. |
+| AA | `linked_reimbursement_total` | **Auto** — sums reimbursement values in CZK for the same `linked_group_id`. |
+| AB | `report_amount` | **Auto — the value all dashboards use.** Rules: exclude→0; reimbursement→0; transfer→0; original_expense→`max((amount × fx_rate) − linked_reimbursement_total, 0)`; else→`amount × fx_rate`. |
+| AC | `reimbursement_status` | **Auto** — `Waiting` / `Partial` / `Settled` based on expected vs received. |
 
 ---
 
@@ -70,7 +71,7 @@
 |-----|-------|-------|
 | A | `Category` | Canonical budget category names. Only rows with a budget set have an entry here. |
 | B | `Monthly Budget` | Budget amount in CZK for that category. |
-| C | `all_categories` | **Complete list of all valid categories** (including those without budgets). Used as the dropdown data source for `Transactions.category` (col H). Do not overwrite or append to this column from the PWA — it is maintained in the sheet. |
+| C | `all_categories` | **Complete list of all valid categories** (including those without budgets). Used as the dropdown data source for `Transactions.category` (col I). Do not overwrite or append to this column from the PWA — it is maintained in the sheet. |
 
 > **Important for writes:** When adding a new budget row via the API, only write columns A and B (`Category` and `Monthly Budget`). Never write to column C (`all_categories`) — it is managed by the sheet itself.
 
@@ -95,11 +96,11 @@
 
 ## Dashboard 2.0 Tab (current)
 
-Uses `report_amount` (col AA) and `exclude_from_reports` (col V) for all analytics.
+Uses `report_amount` (col AB) and `exclude_from_reports` (col W) for all analytics.
 
 **Two modes side-by-side:**
-- Calendar month — keyed on `Transactions.month` (Q)
-- Salary cycle — keyed on `Transactions.billing_period` (U)
+- Calendar month — keyed on `Transactions.month` (R)
+- Salary cycle — keyed on `Transactions.billing_period` (V)
 
 **Sections:**
 - Controls: Current Month, Salary Period, refresh timestamp
@@ -115,9 +116,9 @@ Uses `report_amount` (col AA) and `exclude_from_reports` (col V) for all analyti
 
 | Source | → | Target | Purpose |
 |--------|---|--------|---------|
-| `Transactions.month` (Q) | → | Dashboard & Dashboard 2.0 | Calendar-month analytics |
-| `Salary Periods.start_date` | → | `Transactions.billing_period` (U) | Salary-cycle period mapping |
-| `Budgets.all_categories` (C) | → | `Transactions.category` (H) dropdown | Category validation |
-| `Transactions.exclude_from_reports` (V) + `link_role` (X) / linking (W:AB) | → | `report_amount` (AA) | Authoritative analytics amount |
+| `Transactions.month` (R) | → | Dashboard & Dashboard 2.0 | Calendar-month analytics |
+| `Salary Periods.start_date` | → | `Transactions.billing_period` (V) | Salary-cycle period mapping |
+| `Budgets.all_categories` (C) | → | `Transactions.category` (I) dropdown | Category validation |
+| `Transactions.fx_rate` (G) + `exclude_from_reports` (W) + `link_role` (Y) / linking (X:AC) | → | `report_amount` (AB) | Authoritative analytics amount in CZK |
 | Dashboard 2.0 | = | Authoritative analytics layer | Uses `report_amount` throughout |
 | Legacy Dashboard | = | Older raw-amount view | Uses `amount`, not analytics-safe |

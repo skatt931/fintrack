@@ -134,6 +134,7 @@ function renderForm(el, data, params) {
       direction:    currentType,
       amount:       amountRaw,
       currency:     'CZK',
+      fx_rate:      1,
       category:     category,
       needs_review: 'FALSE',
     };

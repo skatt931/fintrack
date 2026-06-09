@@ -27,6 +27,10 @@ const CURRENCY_SYMBOLS = {
   CHF: 'CHF',
 };
 
+function normalizeCurrency(code) {
+  return (code || 'CZK').toUpperCase();
+}
+
 /** Parse a Sheets-returned amount (may be a number, or a string with thousand
  *  separators) into a number. Returns 0 for empty / non-numeric input. */
 export function parseAmount(val) {
@@ -44,13 +48,47 @@ export function parseAmount(val) {
 export function fmt(n, currency = 'CZK') {
   const num = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 })
     .format(Math.abs(n));
-  const code   = (currency || 'CZK').toUpperCase();
+  const code   = normalizeCurrency(currency);
   const symbol = CURRENCY_SYMBOLS[code] || code;
   return `${num} ${symbol}`;
 }
 
 /** Just the symbol, for places that build their own format string. */
 export function currencySymbol(code) {
-  const c = (code || 'CZK').toUpperCase();
+  const c = normalizeCurrency(code);
   return CURRENCY_SYMBOLS[c] || c;
+}
+
+export function getOriginalAmount(txn) {
+  return parseAmount(txn?.amount);
+}
+
+export function getFxRate(txn) {
+  const code = normalizeCurrency(txn?.currency);
+  if (code === 'CZK') return 1;
+  const rate = parseAmount(txn?.fx_rate);
+  return rate > 0 ? rate : 0;
+}
+
+export function getReportAmount(txn) {
+  const rawReportAmount = txn?.report_amount;
+  const originalAmount = getOriginalAmount(txn);
+  const fxRate = getFxRate(txn);
+  const currency = normalizeCurrency(txn?.currency);
+  const hasLocalConversion = originalAmount > 0 && (currency === 'CZK' || fxRate > 0);
+
+  if (!hasLocalConversion && rawReportAmount !== '' && rawReportAmount != null) {
+    return parseAmount(rawReportAmount);
+  }
+
+  if (txn?.exclude_from_reports === 'TRUE' || txn?.exclude_from_reports === true) return 0;
+  if (txn?.link_role === 'reimbursement') return 0;
+  if (txn?.direction === 'transfer' || txn?.type === 'transfer' || txn?.link_role === 'transfer_pair') return 0;
+
+  const convertedAmount = originalAmount * (currency === 'CZK' ? 1 : fxRate);
+  if (txn?.link_role === 'original_expense') {
+    return Math.max(0, convertedAmount - parseAmount(txn?.linked_reimbursement_total));
+  }
+
+  return convertedAmount;
 }

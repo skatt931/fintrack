@@ -2,7 +2,7 @@ import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
 import { openEditSheet } from './transactions.js';
-import { fmt, parseAmount } from '../utils/format.js';
+import { fmt, getOriginalAmount, getReportAmount } from '../utils/format.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -56,13 +56,13 @@ function renderPage(el, date, txns, data) {
   const isToday  = date === today;
   const isFuture = date >= today;
 
-  const total = txns.reduce((s, t) => s + parseAmount(t.report_amount), 0);
+  const total = txns.reduce((s, t) => s + getReportAmount(t), 0);
 
   // Top 3 categories by spend — shown as emoji badges in the header
   const byCat = {};
   for (const t of txns) {
     const cat = t.category || 'Uncategorized';
-    byCat[cat] = (byCat[cat] || 0) + parseAmount(t.report_amount);
+    byCat[cat] = (byCat[cat] || 0) + getReportAmount(t);
   }
   const topCats = Object.entries(byCat).sort(([, a], [, b]) => b - a).slice(0, 3);
 
@@ -104,7 +104,7 @@ function renderPage(el, date, txns, data) {
       <!-- Transaction list -->
       <div class="txn-list">
         ${txns.length > 0 ? txns.map(t => {
-          const amt      = parseAmount(t.report_amount);
+          const amt      = getOriginalAmount(t);
           const merchant = t.merchant || t.description || t.note || t.Merchant || '';
           const review   = t.needs_review === 'TRUE' || t.needs_review === true;
           const headline = merchant || t.category || 'Expense';

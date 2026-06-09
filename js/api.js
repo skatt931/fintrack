@@ -2,7 +2,7 @@ import { SPREADSHEET_ID, SHEETS } from './config.js';
 import { getToken, requestToken, clearToken } from './auth.js';
 
 const BASE      = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`;
-const CACHE_KEY = 'finance_data_v3'; // bumped — busts old format caches
+const CACHE_KEY = 'finance_data_v4'; // bumped — busts caches after the fx_rate schema change
 const CACHE_TTL = 5 * 60 * 1000;
 
 // ── Fetch helpers ─────────────────────────────────────────────────────────────
@@ -128,7 +128,7 @@ export async function updateTransactionCells(row, txHeaders, fields) {
 }
 
 // Append a new transaction row
-// fields: { date, bank, direction, amount, currency, category, month, billing_period, needs_review, report_amount, ... }
+// fields: { date, bank, direction, amount, currency, fx_rate, category, month, billing_period, needs_review, report_amount, ... }
 export async function appendTransaction(txHeaders, fields) {
   const rowValues = txHeaders.map(h => fields[h] ?? '');
 

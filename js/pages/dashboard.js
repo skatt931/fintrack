@@ -2,7 +2,7 @@ import { loadData, clearCache, updateBudgetAmount, appendBudgetRow } from '../ap
 import { navigate }                           from '../router.js';
 import { getCategoryEmoji, getCategoryColor } from '../categoryIcons.js';
 import { loadSections }                       from '../settings.js';
-import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, getReportAmount, parseAmount } from '../utils/format.js';
 import { setView }                              from '../viewState.js';
 import { getWeekNumberForDate }               from '../utils/periodWeek.js';
 
@@ -53,7 +53,7 @@ function filterTxns(data, period, mode) {
 function computeSummary(txns) {
   let income = 0, expenses = 0, needsReview = 0;
   for (const t of txns) {
-    const amt = parseAmount(t.report_amount);
+    const amt = getReportAmount(t);
     if (t.direction === 'income')  income   += amt;
     if (t.direction === 'expense') expenses += amt;
     if (t.needs_review === 'TRUE' || t.needs_review === true) needsReview++;
@@ -147,7 +147,7 @@ function computeBudgetProgress(txns, budgets) {
   const actualByCategory = {};
   for (const t of expenses) {
     const cat = t.category || 'Uncategorized';
-    actualByCategory[cat] = (actualByCategory[cat] || 0) + parseAmount(t.report_amount);
+    actualByCategory[cat] = (actualByCategory[cat] || 0) + getReportAmount(t);
   }
 
   // Budgeted categories
@@ -204,7 +204,7 @@ function computeSpendingTrend(transactions, n = 6) {
     if (t.direction !== 'expense') continue;
     const m = t.month || (t.date ? t.date.slice(0, 7) : null);
     if (!m) continue;
-    byMonth[m] = (byMonth[m] || 0) + parseAmount(t.report_amount);
+    byMonth[m] = (byMonth[m] || 0) + getReportAmount(t);
   }
   return Object.entries(byMonth)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -222,7 +222,7 @@ function computePeriodComparison(data, currentPeriod, mode) {
     const m = {};
     for (const t of txns.filter(t => t.direction === 'expense')) {
       const cat = t.category || 'Uncategorized';
-      m[cat] = (m[cat] || 0) + parseAmount(t.report_amount);
+      m[cat] = (m[cat] || 0) + getReportAmount(t);
     }
     return m;
   };
@@ -249,7 +249,7 @@ function computeWeeklySpending(txns, data, period, mode) {
     const week = getWeekNumberForDate(t.date, data, mode, period);
     if (!week) continue;
     const key  = `Wk ${week}`;
-    byWeek[key] = (byWeek[key] || 0) + parseAmount(t.report_amount);
+    byWeek[key] = (byWeek[key] || 0) + getReportAmount(t);
   }
   return Object.entries(byWeek).sort(([a], [b]) =>
     parseInt(a.slice(3)) - parseInt(b.slice(3)));
@@ -262,7 +262,7 @@ function computeDowSpending(txns) {
   for (const t of txns) {
     if (t.direction !== 'expense' || !t.date) continue;
     const dow = (new Date(t.date.slice(0, 10)).getDay() + 6) % 7; // Mon = 0
-    totals[dow] += parseAmount(t.report_amount);
+    totals[dow] += getReportAmount(t);
   }
   return labels.map((l, i) => [l, totals[i]]);
 }
@@ -277,7 +277,7 @@ function detectRecurring(transactions, mode, minPeriods = 2) {
     if (!period) continue;
     if (!byCat[cat]) byCat[cat] = { periods: new Set(), amounts: [] };
     byCat[cat].periods.add(period);
-    byCat[cat].amounts.push(parseAmount(t.report_amount));
+    byCat[cat].amounts.push(getReportAmount(t));
   }
   return Object.entries(byCat)
     .filter(([, v]) => v.periods.size >= minPeriods)
@@ -405,11 +405,11 @@ function renderPage(el) {
   const todayTxns  = data.transactions.filter(t =>
     t.direction === 'expense' && normDateKey(t.date) === todayStr
   );
-  const todayTotal = todayTxns.reduce((s, t) => s + parseAmount(t.report_amount), 0);
+  const todayTotal = todayTxns.reduce((s, t) => s + getReportAmount(t), 0);
   const todayByCat = {};
   for (const t of todayTxns) {
     const cat = t.category || 'Uncategorized';
-    todayByCat[cat] = (todayByCat[cat] || 0) + parseAmount(t.report_amount);
+    todayByCat[cat] = (todayByCat[cat] || 0) + getReportAmount(t);
   }
   const todayCats = Object.entries(todayByCat).sort(([, a], [, b]) => b - a).slice(0, 3);
 
@@ -437,9 +437,9 @@ function renderPage(el) {
   const spentByMerchant = {};
   for (const t of txns.filter(t => t.direction === 'expense')) {
     const cat = t.category || 'Uncategorized';
-    spentByCat[cat] = (spentByCat[cat] || 0) + parseAmount(t.report_amount);
+    spentByCat[cat] = (spentByCat[cat] || 0) + getReportAmount(t);
     const m = getMerchant(t);
-    if (m) spentByMerchant[m] = (spentByMerchant[m] || 0) + parseAmount(t.report_amount);
+    if (m) spentByMerchant[m] = (spentByMerchant[m] || 0) + getReportAmount(t);
   }
   const spentCats      = Object.entries(spentByCat).sort(([, a], [, b]) => b - a);
   const spentTotal     = spentCats.reduce((s, [, v]) => s + v, 0);

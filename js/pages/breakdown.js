@@ -1,7 +1,7 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
-import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, getReportAmount } from '../utils/format.js';
 import { getView, setView }                    from '../viewState.js';
 
 // Same palette as the dashboard donut chart
@@ -30,7 +30,7 @@ export function renderBreakdown(el, params = {}) {
     const byCategory = {};
     for (const t of txns) {
       const cat = t.category || 'Uncategorized';
-      byCategory[cat] = (byCategory[cat] || 0) + parseAmount(t.report_amount);
+      byCategory[cat] = (byCategory[cat] || 0) + getReportAmount(t);
     }
 
     const categories = Object.entries(byCategory).sort(([, a], [, b]) => b - a);

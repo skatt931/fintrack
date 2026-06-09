@@ -47,6 +47,7 @@ The product includes a broader automation layer built in n8n: transaction ingest
 - Cache auto-invalidates after any write (add or edit)
 - Manual **Refresh Data** option in the ⋮ menu forces full reload
 - Cell-level updates via Sheets API v4 (`batchUpdate`)
+- Transactions now include a stored `fx_rate` column so reporting can convert non-CZK rows into deterministic CZK amounts without the PWA calling an exchange-rate service
 - Formula columns (`month`, `billing_period`, `report_amount`, `linked_reimbursement_total`, `reimbursement_status`) are never overwritten — computed by the sheet
 
 ### n8n ingestion into the sheet
@@ -70,6 +71,7 @@ The product includes a broader automation layer built in n8n: transaction ingest
 - Czech bank emails are parsed through an AI prompt that extracts:
   - `email_id`, `date`, `bank`, `direction`, `amount`, `currency`, `merchant`, `category`, `description`, `confidence`
   - `source_subject`, `source_from`, `source_date`, `raw_snippet`
+- Non-CZK transactions are expected to carry a numeric `fx_rate` so the sheet can convert `amount` into CZK for reporting
 - Parsed rows are appended to the **Transactions** sheet with review metadata
 - Auto-review rules in the workflow:
   - `needs_review = true` when confidence is below `0.8`
@@ -489,12 +491,12 @@ A dedicated section at the bottom of the edit sheet with three role options:
 ## Currency & Localisation
 
 - Numbers formatted with `cs-CZ` locale (space thousands separator)
-- **Per-transaction display uses the transaction's own currency** (col F of Transactions sheet). Known codes are mapped to symbols: `CZK → Kč`, `EUR → €`, `USD → $`, `GBP → £`, `PLN → zł`, `CHF → CHF`. Unknown codes render as the raw ISO code (e.g. "100 NOK"). Empty / missing currency falls back to `Kč`.
+- **Per-transaction display uses the transaction's own bank amount and currency** (`amount` + `currency` from the Transactions sheet). Known codes are mapped to symbols: `CZK → Kč`, `EUR → €`, `USD → $`, `GBP → £`, `PLN → zł`, `CHF → CHF`. Unknown codes render as the raw ISO code (e.g. "100 NOK"). Empty / missing currency falls back to `Kč`.
 - Sites that show the per-transaction currency: Records list rows, Daily View rows, Weekly View rows, transaction edit sheet header.
-- **Aggregations (Dashboard cards, Spent in Period, By Merchant, Budget vs Actual, Spending Trend, Comparison, Recurring, Owes You, Planned Expenses) currently render in Kč regardless of underlying transaction currencies.** This means totals that include non-CZK transactions are arithmetically wrong (a 4 EUR row is summed as if it were 4 Kč). Full multi-currency aggregation (exchange-rate conversion or per-currency tabs) is a separate refinement — see Option B in the currency display discussion.
+- **Aggregations now use the stored `fx_rate` and resolve to CZK report amounts.** Dashboard cards, Spent in Period, By Merchant, Budget vs Actual, Spending Trend, Comparison, Recurring, Owes You, Planned Expenses, Daily totals, Weekly totals, and Records period totals all treat `amount × fx_rate` as the reporting amount for non-CZK rows while preserving the original amount on each transaction row.
 - Period labels: "April 2026" in full headers, "Apr '26" in chart axis labels
 - Date display: "Mon, 01 Jan" in list headers, "01 Jan 2026" in edit sheet
-- Single source of truth for amount/currency formatting: `js/utils/format.js` (`fmt`, `parseAmount`, `currencySymbol`)
+- Single source of truth for amount/currency formatting and reporting math: `js/utils/format.js` (`fmt`, `parseAmount`, `currencySymbol`, `getOriginalAmount`, `getReportAmount`, `getFxRate`)
 
 ---
 

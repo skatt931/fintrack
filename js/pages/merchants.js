@@ -1,7 +1,7 @@
 import { loadData } from '../api.js';
 import { navigate } from '../router.js';
 import { getCategoryEmoji } from '../categoryIcons.js';
-import { formatPeriodLabel, fmt, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, getReportAmount } from '../utils/format.js';
 import { getView, setView }                    from '../viewState.js';
 
 const CAT_COLORS = [
@@ -34,7 +34,7 @@ export function renderMerchants(el, params = {}) {
     for (const t of txns) {
       const m = getMerchant(t);
       if (!m) continue;
-      byMerchant[m] = (byMerchant[m] || 0) + parseAmount(t.report_amount);
+      byMerchant[m] = (byMerchant[m] || 0) + getReportAmount(t);
     }
 
     const merchants = Object.entries(byMerchant).sort(([, a], [, b]) => b - a);
