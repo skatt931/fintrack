@@ -493,6 +493,8 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Numbers formatted with `cs-CZ` locale (space thousands separator)
 - **Per-transaction display uses the transaction's own bank amount and currency** (`amount` + `currency` from the Transactions sheet). Known codes are mapped to symbols: `CZK → Kč`, `EUR → €`, `USD → $`, `GBP → £`, `PLN → zł`, `CHF → CHF`. Unknown codes render as the raw ISO code (e.g. "100 NOK"). Empty / missing currency falls back to `Kč`.
 - **Foreign-currency transaction rows also show the CZK reporting amount** so you can see both the real bank charge and the converted amount used in analytics.
+- **When reporting logic changes what counts** (for example reimbursements, excluded transfers, or debt-linked expenses), transaction rows and the edit sheet show the reportable amount as the main value and the real bank movement as a muted secondary value.
+- **Per-transaction amounts preserve cents** in row/detail display so foreign-currency and decimal-value card charges do not get rounded to whole numbers.
 - Sites that show the per-transaction currency: Records list rows, Daily View rows, Weekly View rows, transaction edit sheet header.
 - **Aggregations now use the stored `fx_rate` and resolve to CZK report amounts.** Dashboard cards, Spent in Period, By Merchant, Budget vs Actual, Spending Trend, Comparison, Recurring, Owes You, Planned Expenses, Daily totals, Weekly totals, and Records period totals all treat `amount × fx_rate` as the reporting amount for non-CZK rows while preserving the original amount on each transaction row.
 - Period labels: "April 2026" in full headers, "Apr '26" in chart axis labels

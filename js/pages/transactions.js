@@ -1,7 +1,7 @@
 import { loadData, updateTransactionCells, clearCache } from '../api.js';
 import { navigate } from '../router.js';
 import { categoryBadge } from '../categoryIcons.js';
-import { formatPeriodLabel, fmt, getFxRate, getOriginalAmount, getReportAmount, getTransactionAmountDisplay, parseAmount } from '../utils/format.js';
+import { formatPeriodLabel, fmt, fmtTxn, getFxRate, getOriginalAmount, getReportAmount, getTransactionAmountDisplay, parseAmount } from '../utils/format.js';
 import { getWeekNumberForDate, getWeeksForTransactions } from '../utils/periodWeek.js';
 import { setView, getView }                    from '../viewState.js';
 
@@ -485,8 +485,8 @@ function renderPage(el) {
                   <div class="txn-main">
                     <span class="txn-headline">${headline}</span>
                     <span class="txn-amount-stack">
-                      <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${amountDisplay.originalLabel}</span>
-                      ${amountDisplay.showReportAmount ? `<span class="txn-amount-secondary">${amountDisplay.reportLabel}</span>` : ''}
+                      <span class="txn-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${amountDisplay.primaryLabel}</span>
+                      ${amountDisplay.showSecondary ? `<span class="txn-amount-secondary">${amountDisplay.secondaryLabel}</span>` : ''}
                     </span>
                   </div>
                   <div class="txn-sub">
@@ -618,6 +618,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
   const originalAmt = getOriginalAmount(txn);
   const reportAmt   = getReportAmount(txn);
   const fxRate      = getFxRate(txn);
+  const amountDisplay = getTransactionAmountDisplay(txn);
   const isExp  = txn.direction === 'expense';
   const review = txn.needs_review === 'TRUE' || txn.needs_review === true;
 
@@ -675,7 +676,7 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
   ]);
   const extraFields = [
     ...((txn.currency || 'CZK').toUpperCase() !== 'CZK' && fxRate > 0
-      ? [['fx_rate', fxRate.toFixed(3)], ['report_amount_czk', fmt(reportAmt)]]
+      ? [['fx_rate', fxRate.toFixed(3)], ['report_amount_czk', fmtTxn(reportAmt)]]
       : []),
     ...Object.entries(txn).filter(([k]) => !knownFields.has(k) && !k.startsWith('_') && txn[k]),
   ];
@@ -693,8 +694,8 @@ export function openEditSheet(txn, data, pageEl, onAfterSave = null) {
           <div class="sheet-subtitle">${fmtDate(txn.date)} · ${txn.bank || '—'}</div>
         </div>
         <div class="sheet-amount-wrap">
-          <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${fmt(originalAmt, txn.currency)}</div>
-          ${((txn.currency || 'CZK').toUpperCase() !== 'CZK' && reportAmt > 0) ? `<div class="sheet-amount-secondary">${fmt(reportAmt)}</div>` : ''}
+          <div class="sheet-amount ${isExp ? 'expense' : 'income'}">${isExp ? '-' : '+'}${amountDisplay.primaryLabel}</div>
+          ${amountDisplay.showSecondary ? `<div class="sheet-amount-secondary">${amountDisplay.secondaryLabel}</div>` : ''}
         </div>
       </div>
 

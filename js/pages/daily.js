@@ -115,8 +115,8 @@ function renderPage(el, date, txns, data) {
               <div class="txn-main">
                 <span class="txn-headline">${headline}</span>
                 <span class="txn-amount-stack">
-                  <span class="txn-amount expense">−${amountDisplay.originalLabel}</span>
-                  ${amountDisplay.showReportAmount ? `<span class="txn-amount-secondary">${amountDisplay.reportLabel}</span>` : ''}
+                  <span class="txn-amount expense">−${amountDisplay.primaryLabel}</span>
+                  ${amountDisplay.showSecondary ? `<span class="txn-amount-secondary">${amountDisplay.secondaryLabel}</span>` : ''}
                 </span>
               </div>
               <div class="txn-sub">

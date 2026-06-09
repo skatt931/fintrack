@@ -83,6 +83,18 @@ export function fmt(n, currency = 'CZK') {
   return `${num} ${symbol}`;
 }
 
+export function fmtTxn(n, currency = 'CZK') {
+  const abs = Math.abs(Number(n) || 0);
+  const hasFraction = Math.abs(abs - Math.round(abs)) > 0.0001;
+  const num = new Intl.NumberFormat('cs-CZ', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  }).format(abs);
+  const code   = normalizeCurrency(currency);
+  const symbol = CURRENCY_SYMBOLS[code] || code;
+  return `${num} ${symbol}`;
+}
+
 /** Just the symbol, for places that build their own format string. */
 export function currencySymbol(code) {
   const c = normalizeCurrency(code);
@@ -128,13 +140,25 @@ export function getTransactionAmountDisplay(txn) {
   const originalAmount = getOriginalAmount(txn);
   const reportAmount = getReportAmount(txn);
   const currency = normalizeCurrency(txn?.currency);
-  const showReportAmount = currency !== 'CZK' && reportAmount > 0;
+  const convertedOriginal = originalAmount * (currency === 'CZK' ? 1 : getFxRate(txn));
+  const reportAdjusted = Math.abs(reportAmount - convertedOriginal) > 0.005;
+  const showConvertedSecondary = currency !== 'CZK' && reportAmount > 0 && !reportAdjusted;
+
+  if (reportAdjusted) {
+    return {
+      originalAmount,
+      reportAmount,
+      primaryLabel: fmtTxn(reportAmount),
+      secondaryLabel: originalAmount > 0 ? fmtTxn(originalAmount, currency) : '',
+      showSecondary: originalAmount > 0,
+    };
+  }
 
   return {
     originalAmount,
     reportAmount,
-    originalLabel: fmt(originalAmount, currency),
-    reportLabel: fmt(reportAmount),
-    showReportAmount,
+    primaryLabel: fmtTxn(originalAmount, currency),
+    secondaryLabel: showConvertedSecondary ? fmtTxn(reportAmount) : '',
+    showSecondary: showConvertedSecondary,
   };
 }
