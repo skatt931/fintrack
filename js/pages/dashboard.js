@@ -61,6 +61,11 @@ function computeSummary(txns) {
   return { income, expenses, balance: income - expenses, needsReview };
 }
 
+function computeSavingsRate(summary) {
+  if (!summary.income) return null;
+  return ((summary.income - summary.expenses) / summary.income) * 100;
+}
+
 // Days from today until the next salary period start date (next payday)
 function computeDaysUntilPayday(salaryPeriods) {
   const today = new Date().toISOString().slice(0, 10);
@@ -177,6 +182,26 @@ function progressClass(actual, budget) {
   if (ratio >= 1)   return 'over';
   if (ratio >= 0.8) return 'warn';
   return 'ok';
+}
+
+// Projected end-of-period spend + % vs previous period (billing mode only)
+function computePace(txns, data, period, mode, elapsedPct) {
+  if (!elapsedPct || elapsedPct <= 0 || elapsedPct >= 100) return null;
+  const expenses = txns
+    .filter(t => t.direction === 'expense')
+    .reduce((s, t) => s + getReportAmount(t), 0);
+  if (!expenses) return null;
+  const projected = expenses / (elapsedPct / 100);
+  const periods = getAvailablePeriods(data, mode);
+  const ci = periods.indexOf(period);
+  let prevTotal = null;
+  if (ci >= 0 && ci < periods.length - 1) {
+    prevTotal = filterTxns(data, periods[ci + 1], mode)
+      .filter(t => t.direction === 'expense')
+      .reduce((s, t) => s + getReportAmount(t), 0) || null;
+  }
+  const pct = prevTotal ? (projected - prevTotal) / prevTotal * 100 : null;
+  return { projected, prevTotal, pct };
 }
 
 // Returns % of billing period elapsed (0–100), or null if not computable
@@ -394,6 +419,9 @@ function renderPage(el) {
     ? computePeriodElapsed(data.salaryPeriods, period)
     : null;
 
+  const savingsRate = computeSavingsRate(summary);
+  const pace        = computePace(txns, data, period, mode, elapsedPct);
+
   const trend       = computeSpendingTrend(data.transactions);
   const comparison  = computePeriodComparison(data, period, mode);
   const weekly      = computeWeeklySpending(txns, data, period, mode);
@@ -524,8 +552,16 @@ function renderPage(el) {
     <div class="section-title">Spending Breakdown <span class="section-hint">tap a slice to see records</span></div>
     <div class="chart-wrap"><div class="chart-container"><canvas id="donut-chart"></canvas></div></div>` : '';
 
+  const paceLine = pace ? (() => {
+    const arrow   = pace.pct === null ? '' : pace.pct > 0 ? '↑' : '↓';
+    const pctTxt  = pace.pct !== null ? ` · ${arrow} ${Math.abs(pace.pct).toFixed(0)}% vs prev` : '';
+    const cls     = pace.pct !== null && pace.pct > 0 ? 'pace-up' : 'pace-ok';
+    return `<div class="pace-line ${cls}">At this pace → <strong>${fmt(Math.round(pace.projected))}</strong>${pctTxt}</div>`;
+  })() : '';
+
   const trendSectionHtml = trend.length >= 2 ? `
     <div class="section-title">Spending Trend <span class="section-hint">last ${trend.length} months</span></div>
+    ${paceLine}
     <div class="chart-wrap"><div class="chart-container trend-wrap"><canvas id="trend-chart"></canvas></div></div>` : '';
 
   const comparisonSectionHtml = comparison ? `
@@ -685,12 +721,17 @@ function renderPage(el) {
             <div class="card-value">${fmt(summary.expenses)}</div>
             <div class="card-tap-hint">tap to see →</div>
           </div>
-          <div class="summary-card summary-card-compact card-balance summary-card-balance-inline">
+          <div class="summary-card summary-card-compact card-balance${savingsRate === null ? ' summary-card-wide' : ''}">
             <div class="card-label">Balance</div>
             <div class="card-value ${summary.balance >= 0 ? 'positive' : 'negative'}">
-              ${summary.balance >= 0 ? '' : '−'} ${fmt(summary.balance)}
+              ${summary.balance >= 0 ? '' : '−'}${fmt(Math.abs(summary.balance))}
             </div>
           </div>
+          ${savingsRate !== null ? `
+          <div class="summary-card summary-card-compact card-savings">
+            <div class="card-label">Savings Rate</div>
+            <div class="card-value ${savingsRate >= 0 ? 'positive' : 'negative'}">${savingsRate >= 0 ? '' : '−'}${Math.abs(savingsRate).toFixed(0)}%</div>
+          </div>` : ''}
         </div>
       </div>
 

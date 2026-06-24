@@ -49,6 +49,11 @@ The product includes a broader automation layer built in n8n: transaction ingest
 - Cell-level updates via Sheets API v4 (`batchUpdate`)
 - Transactions now include a stored `fx_rate` column so reporting can convert non-CZK rows into deterministic CZK amounts without the PWA calling an exchange-rate service
 - Formula columns (`month`, `billing_period`, `report_amount`, `linked_reimbursement_total`, `reimbursement_status`) are never overwritten — computed by the sheet
+- The repo also includes a historical Google Sheets → Supabase backfill path for migration work:
+  - CSV import order is categories → budgets → salary periods → transactions → planned expenses
+  - the importer can write through a direct Postgres connection, so backfills still work even if the `finance` schema is not exposed via the Supabase Data API
+  - historical transaction rows without a stable `email_id` are assigned deterministic synthetic `legacy:...` IDs during import so the same CSV can be re-imported without duplication
+  - planned expenses import supports `monthly`, `quarterly`, and `yearly` recurring periods and uses a dedicated import key for reruns
 
 ### n8n ingestion into the sheet
 
@@ -204,11 +209,12 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Secondary Summary Metrics
 
-`Income`, `Expenses`, and `Balance` still appear in the first viewport, but as lower-priority compact cards below the hero:
+`Income`, `Expenses`, `Balance`, and `Savings Rate` appear in a 2×2 grid below the hero:
 
 - **Income** — total income for the period; tap to open Records filtered to income only
 - **Expenses** — total expenses; tap to open Records filtered to expenses only
-- **Balance** — income minus expenses (green if positive, red if negative)
+- **Balance** — income minus expenses (green if positive, red if negative); spans full width when no savings rate is available
+- **Savings Rate** — `(income − expenses) / income × 100`; only shown when the period has income; negative if expenses exceed income
 - The amount + currency suffix never wraps onto two lines — `card-value` uses `white-space: nowrap` and a fluid `clamp()` font size so values like "67 000 Kč" stay on a single line even on narrow phones. Cards have reduced vertical padding so they sit at a normal height.
 
 ### Period Controls
@@ -250,6 +256,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 ### Spending Trend Chart
 - Bar chart of total monthly expenses for the last 6 months (calendar months, always)
 - Labels formatted as "Apr '26"
+- **Pace indicator** (billing mode only): when the current period is in progress, shows a projected end-of-period total based on spending ÷ % elapsed, with a ↑/↓ % vs the previous period; projected amount shown in green when on pace to spend less, red when on pace to exceed previous period
 
 ### vs Previous Period
 - Table comparing each category's spend: current vs previous period

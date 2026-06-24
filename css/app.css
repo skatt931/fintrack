@@ -391,7 +391,10 @@ body {
 }
 
 .summary-grid-secondary {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.summary-card-wide {
+  grid-column: 1 / -1;
 }
 
 .summary-card {
@@ -1564,10 +1567,19 @@ input[type="date"].field-input { -webkit-appearance: none; appearance: none; }
 }
 .card-savings .card-value { color: var(--primary-2); }
 
-/* (pacing marker replaced by period-progress-row above budget list) */
-
 /* ── Spending Trend chart ────────────────────────────────────────────────── */
 .trend-wrap { height: 180px; }
+
+/* ── Pace indicator ──────────────────────────────────────────────────────── */
+.pace-line {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0 2px 6px;
+}
+.pace-line strong { font-weight: 800; color: var(--text); }
+.pace-line.pace-up strong { color: var(--red); }
+.pace-line.pace-ok strong { color: var(--green); }
 
 /* ── Period Comparison ───────────────────────────────────────────────────── */
 .comparison-row {
