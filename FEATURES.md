@@ -30,15 +30,18 @@ The product includes a broader automation layer built in n8n: transaction ingest
 
 ## Visual Design
 
-- Cool blue-grey ground, white flat surfaces and dark text, using the Achromatic ledger design direction.
+- Tidal light visual direction: grainy marine-blue, aqua and peach colour fields on sign-in and Safe Limit; a lighter atmospheric canvas across the app.
+- Static locally authored grain sits behind content and never intercepts controls; data panels, financial KPI strip, charts, transaction rows and form fields remain opaque.
+- The explicitly requested Grainy Gradients / Digital Atmospheres style supersedes the former achromatic theme.
 - Geist is the shared sans-serif typeface, with tabular figures for financial amounts.
 - Safe limit remains the leading daily allowance; income, expenses, balance and savings share one quiet summary container.
-- Consistent 24px section spacing, compact 8px panel corners, visible keyboard focus and 16px form fields.
+- An Upcoming shortcut beside today/payday context shows the existing upcoming planned total and opens Planned directly, even when its configurable dashboard section is hidden. It follows the current upcoming cutoff, not a historical period. No items shows “No upcoming expenses”; zero-valued items still show an Upcoming total.
+- 24px section spacing (20px in the outer stack on shorter phones), compact 8px panel corners, visible keyboard focus and 16px form fields. On 375×667 screens, tighter vertical padding keeps the primary financial summary above bottom navigation.
 - Overview sections use two columns on tablet/desktop and one column on phones, preserving the saved section order. Today and Budget use full-width rows on larger screens.
 - Desktop uses a centered wide canvas with top navigation; mobile retains the three-destination bottom navigation and safe-area spacing.
 - Charts use blue with neutral comparison/category tones. Ordinary spending is dark ink; over-budget and negative states retain risk colour.
 - Category emoji and tinted icon badges are removed; daily and weekly category summaries use plain names.
-- Sign-in and the shared header use a simple ledger monogram. PWA icons and browser chrome match the new palette.
+- Sign-in and the shared header use a simple ledger monogram. PWA browser chrome uses the pale atmospheric canvas colour; install icons retain the neutral ledger mark.
 - Sign-in and app screens each expose one active semantic page title.
 
 ---

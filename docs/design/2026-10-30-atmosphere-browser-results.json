@@ -1,0 +1,467 @@
+{
+  "routeAndWorkflowChecks": [
+    {
+      "name": "dashboard@1440",
+      "pass": true,
+      "details": {
+        "title": "Overview",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "transactions@1440",
+      "pass": true,
+      "details": {
+        "title": "Records",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "txn-search",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "add@1440",
+      "pass": true,
+      "details": {
+        "title": "Add Expense",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "add-amount",
+            "size": 32
+          },
+          {
+            "id": "add-cat",
+            "size": 16
+          },
+          {
+            "id": "add-bank",
+            "size": 16
+          },
+          {
+            "id": "add-date",
+            "size": 16
+          },
+          {
+            "id": "add-note",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "breakdown@1440",
+      "pass": true,
+      "details": {
+        "title": "Spending",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "merchants@1440",
+      "pass": true,
+      "details": {
+        "title": "Merchants",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "daily@1440",
+      "pass": true,
+      "details": {
+        "title": "Daily View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "weekly@1440",
+      "pass": true,
+      "details": {
+        "title": "Weekly View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "planned@1440",
+      "pass": true,
+      "details": {
+        "title": "Planned",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "settings@1440",
+      "pass": true,
+      "details": {
+        "title": "Settings",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "dashboard@768",
+      "pass": true,
+      "details": {
+        "title": "Overview",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "transactions@768",
+      "pass": true,
+      "details": {
+        "title": "Records",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "txn-search",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "add@768",
+      "pass": true,
+      "details": {
+        "title": "Add Expense",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "add-amount",
+            "size": 32
+          },
+          {
+            "id": "add-cat",
+            "size": 16
+          },
+          {
+            "id": "add-bank",
+            "size": 16
+          },
+          {
+            "id": "add-date",
+            "size": 16
+          },
+          {
+            "id": "add-note",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "breakdown@768",
+      "pass": true,
+      "details": {
+        "title": "Spending",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "merchants@768",
+      "pass": true,
+      "details": {
+        "title": "Merchants",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "daily@768",
+      "pass": true,
+      "details": {
+        "title": "Daily View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "weekly@768",
+      "pass": true,
+      "details": {
+        "title": "Weekly View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "planned@768",
+      "pass": true,
+      "details": {
+        "title": "Planned",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "settings@768",
+      "pass": true,
+      "details": {
+        "title": "Settings",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "dashboard@390",
+      "pass": true,
+      "details": {
+        "title": "Overview",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "transactions@390",
+      "pass": true,
+      "details": {
+        "title": "Records",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "txn-search",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "add@390",
+      "pass": true,
+      "details": {
+        "title": "Add Expense",
+        "overflow": false,
+        "inputs": [
+          {
+            "id": "add-amount",
+            "size": 32
+          },
+          {
+            "id": "add-cat",
+            "size": 16
+          },
+          {
+            "id": "add-bank",
+            "size": 16
+          },
+          {
+            "id": "add-date",
+            "size": 16
+          },
+          {
+            "id": "add-note",
+            "size": 16
+          }
+        ]
+      }
+    },
+    {
+      "name": "breakdown@390",
+      "pass": true,
+      "details": {
+        "title": "Spending",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "merchants@390",
+      "pass": true,
+      "details": {
+        "title": "Merchants",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "daily@390",
+      "pass": true,
+      "details": {
+        "title": "Daily View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "weekly@390",
+      "pass": true,
+      "details": {
+        "title": "Weekly View",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "planned@390",
+      "pass": true,
+      "details": {
+        "title": "Planned",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "settings@390",
+      "pass": true,
+      "details": {
+        "title": "Settings",
+        "overflow": false,
+        "inputs": []
+      }
+    },
+    {
+      "name": "Calendar drill-down retains mode",
+      "pass": true
+    },
+    {
+      "name": "Records search",
+      "pass": true
+    },
+    {
+      "name": "Record edit sheet opens",
+      "pass": true
+    },
+    {
+      "name": "Record sheet fits reduced viewport",
+      "pass": true
+    },
+    {
+      "name": "Budget sheet opens and input stays 16px",
+      "pass": true
+    },
+    {
+      "name": "Add submits mocked Sheets append",
+      "pass": true
+    },
+    {
+      "name": "Empty overview renders honestly",
+      "pass": true
+    },
+    {
+      "name": "Empty transactions renders",
+      "pass": true
+    },
+    {
+      "name": "Empty planned renders",
+      "pass": true
+    },
+    {
+      "name": "Empty settings renders",
+      "pass": true
+    },
+    {
+      "name": "Empty add renders",
+      "pass": true
+    },
+    {
+      "name": "200 records render",
+      "pass": true
+    },
+    {
+      "name": "No uncaught app exceptions",
+      "pass": true,
+      "details": []
+    },
+    {
+      "name": "Valid session keeps app open",
+      "pass": true
+    },
+    {
+      "name": "Fresh session sign-in",
+      "pass": true
+    }
+  ],
+  "keyboardAndLargeAmounts": [
+    {
+      "name": "Keyboard opens records",
+      "ok": true
+    },
+    {
+      "name": "Keyboard opens record editor",
+      "ok": true
+    },
+    {
+      "name": "Editor fits keyboard viewport",
+      "ok": true
+    },
+    {
+      "name": "Category summary retained",
+      "ok": true
+    },
+    {
+      "name": "Large amounts do not overflow",
+      "ok": true
+    },
+    {
+      "name": "Single visible title",
+      "ok": true
+    },
+    {
+      "name": "No uncaught exceptions",
+      "ok": true
+    }
+  ],
+  "atmosphereAndUpcoming": [
+    {
+      "name": "Upcoming shortcut shows computed total",
+      "pass": true
+    },
+    {
+      "name": "Upcoming shortcut opens Planned",
+      "pass": true
+    },
+    {
+      "name": "Zero-value planned item is not an empty state",
+      "pass": true
+    },
+    {
+      "name": "Shortcut survives hidden Planned section",
+      "pass": true
+    },
+    {
+      "name": "No upcoming label derives from item count",
+      "pass": true
+    },
+    {
+      "name": "No income/no payday and negative balance remain readable",
+      "pass": true
+    },
+    {
+      "name": "Single transaction layout does not overflow",
+      "pass": true
+    },
+    {
+      "name": "Grain stays static in reduced motion",
+      "pass": true
+    },
+    {
+      "name": "Upcoming target remains 44px",
+      "pass": true
+    },
+    {
+      "name": "No browser exceptions",
+      "pass": true
+    }
+  ],
+  "smallPhone": {
+    "viewport": "375x667",
+    "summaryBottom": 586.34375,
+    "navigationTop": 594,
+    "upcomingTargetHeight": 44,
+    "horizontalOverflow": false,
+    "menuAndSettingsToggle": "passed",
+    "uncaughtExceptions": 0
+  }
+}

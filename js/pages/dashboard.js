@@ -707,6 +707,10 @@ function renderPage(el) {
             Today · ${todayTxns.length > 0 ? fmt(todayTotal) : 'Nothing spent'}
             ${todayCats.length ? `<span class="overview-chip-icons">${todayCats.map(([cat]) => getCategoryEmoji(cat)).join(' ')}</span>` : ''}
           </span>
+          <button type="button" id="overview-upcoming" class="overview-upcoming"
+            aria-label="View upcoming planned expenses${upcomingPlanned.length ? ', ' + fmt(upcomingPlannedTotal) : ''}">
+            ${upcomingPlanned.length ? `Upcoming · ${fmt(upcomingPlannedTotal)} →` : 'No upcoming expenses →'}
+          </button>
         </div>
 
         <div class="summary-grid summary-grid-secondary">
@@ -790,6 +794,7 @@ function renderPage(el) {
   });
 
   // Planned dashboard card → planned expenses page
+  el.querySelector('#overview-upcoming')?.addEventListener('click', () => navigate('planned'));
   el.querySelector('#planned-dash-card')?.addEventListener('click', () => {
     navigate('planned');
   });

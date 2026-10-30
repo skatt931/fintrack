@@ -1,0 +1,178 @@
+/* Tidal light. Grainy gradients explicitly requested by the user. */
+:root {
+  --bg: #edf3f5;
+  --surface: #ffffff;
+  --surface-2: #e8eff1;
+  --border: #dce5e8;
+  --primary: #153b50;
+  --primary-2: #153b50;
+  --accent: #153b50;
+  --atmosphere-marine: #102e43;
+  --atmosphere-blue: #265b9b;
+  --atmosphere-aqua: #62b8b1;
+  --atmosphere-peach: #edb99c;
+  --atmosphere-white: #ffffff;
+  --atmosphere-muted: #dae7ef;
+  --atmosphere-grain: url('../assets/atmosphere-grain.svg');
+  --atmosphere-canvas:
+    radial-gradient(ellipse at 100% 0%, #c5dedf 0%, transparent 52%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 0% 100%, #d9e3f4 0%, transparent 56%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 92% 86%, #f1ddd2 0%, transparent 42%); /* taste-skill-ignore: user-requested gradient */
+  --atmosphere-light:
+    radial-gradient(ellipse at 100% 100%, #d3e6e1 0%, transparent 64%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 80% 0%, #f4e2d9 0%, transparent 55%); /* taste-skill-ignore: user-requested gradient */
+}
+
+body { background-color: var(--bg); background-image: var(--atmosphere-canvas); }
+/* Colour belongs behind the working canvas; this static texture never intercepts a control. */
+#main-screen { isolation: isolate; }
+#main-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--atmosphere-grain);
+  opacity: .1;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: -1;
+}
+.app-header { background: var(--bg); }
+.period-toggle, .txn-mode-toggle { background: var(--surface-2); }
+.nav-item.active { background: var(--surface-2); }
+
+/* A dark, stable text region on the left; the light opens toward the far edge. */
+.overview-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 28px 24px 0;
+  border: 0;
+  background-color: var(--atmosphere-marine);
+  background-image:
+    linear-gradient(90deg, var(--atmosphere-marine) 0%, #102e43ed 33%, #102e4370 62%, transparent 100%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 100% 1%, var(--atmosphere-peach) 0%, transparent 36%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 86% 80%, var(--atmosphere-aqua) 0%, transparent 55%), /* taste-skill-ignore: user-requested gradient */
+    linear-gradient(135deg, var(--atmosphere-marine), var(--atmosphere-blue)); /* taste-skill-ignore: user-requested gradient */
+  color: var(--atmosphere-white);
+}
+.overview-hero::before, #signin-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--atmosphere-grain);
+  opacity: .28;
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+  z-index: 0;
+}
+.overview-hero > *, #signin-screen > * { position: relative; z-index: 1; }
+.overview-hero .overview-title,
+.overview-hero .overview-hero-amount,
+.overview-hero .overview-hero-amount.positive { color: var(--atmosphere-white); }
+.overview-hero .overview-hero-amount.muted { color: var(--atmosphere-muted); }
+.overview-hero .overview-period-badge {
+  color: var(--atmosphere-white);
+  background: var(--atmosphere-marine);
+  padding: 4px 10px;
+  min-height: 28px;
+  border-radius: 6px;
+}
+.overview-hero .overview-chip { color: var(--atmosphere-muted); }
+.overview-hero .overview-hero-subline { margin-bottom: 28px; }
+.overview-hero .summary-grid {
+  position: relative;
+  margin-inline: -24px;
+  padding: 24px;
+  background: var(--surface);
+  border: 0;
+  color: var(--text);
+}
+/* The opaque strip also keeps risk colours independent of the decorative palette. */
+.overview-hero .summary-card { background: var(--surface); }
+.overview-hero .summary-card.clickable-card:hover { background: var(--surface-2); }
+
+.records-hero, .daily-hero, .weekly-hero, .bp-header {
+  background-color: var(--surface);
+  background-image: var(--atmosphere-light);
+}
+.add-amount-wrap { background-color: var(--surface); background-image: var(--atmosphere-light); }
+.field-input, .field-select, .sheet-panel, .txn-item, .chart-wrap,
+.budget-card, .settings-list, .planned-row { background-color: var(--surface); }
+.btn-save:hover, .btn-submit:hover, .planned-add-btn:hover { background: var(--atmosphere-marine); }
+
+/* Sign-in is one continuous atmosphere, with a dark region reserved for its content. */
+#signin-screen {
+  isolation: isolate;
+  overflow-y: auto;
+  background-color: var(--atmosphere-marine);
+  background-image:
+    linear-gradient(90deg, #102e43 0%, #102e43e8 40%, #102e4366 70%, transparent 100%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 98% 12%, var(--atmosphere-peach) 0%, transparent 38%), /* taste-skill-ignore: user-requested gradient */
+    radial-gradient(ellipse at 86% 80%, var(--atmosphere-aqua) 0%, transparent 58%), /* taste-skill-ignore: user-requested gradient */
+    linear-gradient(145deg, var(--atmosphere-marine), var(--atmosphere-blue)); /* taste-skill-ignore: user-requested gradient */
+  color: var(--atmosphere-white);
+}
+#signin-screen::before { position: fixed; }
+#signin-screen .signin-wrap { margin-left: max(24px, calc((100vw - 1120px) / 2)); margin-right: 0; width: min(100%, 480px); }
+#signin-screen .signin-subtitle { color: var(--atmosphere-muted); }
+#signin-screen .brand-mark { color: var(--atmosphere-white); }
+#signin-screen .btn-google { background: var(--surface); color: var(--text); border-color: var(--surface); }
+#signin-screen .btn-google:hover { background: var(--surface-2); }
+#signin-screen :focus-visible { outline-color: var(--atmosphere-white); }
+
+@media (max-width: 759px) {
+  .overview-hero {
+    background-image:
+      linear-gradient(90deg, #102e43 0%, #102e43eb 48%, #102e4380 100%), /* taste-skill-ignore: user-requested gradient */
+      radial-gradient(ellipse at 100% 0%, var(--atmosphere-peach), transparent 62%), /* taste-skill-ignore: user-requested gradient */
+      radial-gradient(ellipse at 100% 58%, var(--atmosphere-aqua), transparent 80%), /* taste-skill-ignore: user-requested gradient */
+      linear-gradient(135deg, var(--atmosphere-marine), var(--atmosphere-blue)); /* taste-skill-ignore: user-requested gradient */
+  }
+  #signin-screen {
+    background-image:
+      linear-gradient(180deg, #102e43fa 0%, #102e43e6 48%, #102e4380 75%, transparent 100%), /* taste-skill-ignore: user-requested gradient */
+      radial-gradient(ellipse at 100% 100%, var(--atmosphere-peach), transparent 53%), /* taste-skill-ignore: user-requested gradient */
+      radial-gradient(ellipse at 0% 86%, var(--atmosphere-aqua), transparent 67%), /* taste-skill-ignore: user-requested gradient */
+      linear-gradient(140deg, var(--atmosphere-marine), var(--atmosphere-blue)); /* taste-skill-ignore: user-requested gradient */
+  }
+  #signin-screen .signin-wrap { margin-inline: auto; width: 100%; padding-inline: 32px; }
+}
+@media (forced-colors: active) {
+  #main-screen::before, .overview-hero::before, #signin-screen::before { display: none; }
+  .overview-hero, #signin-screen { background: Canvas; color: CanvasText; }
+  .overview-hero .overview-title, .overview-hero .overview-hero-amount,
+  .overview-hero .overview-hero-amount.positive, .overview-hero .overview-hero-amount.muted,
+  .overview-hero .overview-period-badge, .overview-hero .overview-chip,
+  #signin-screen .signin-subtitle, #signin-screen .brand-mark { color: CanvasText; }
+}
+.overview-hero .overview-hero-subline { align-items: center; gap: 8px 16px; }
+.overview-upcoming {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #93afbf;
+  border-radius: 6px;
+  background: var(--atmosphere-marine);
+  color: var(--atmosphere-white);
+  font-size: 13px;
+  cursor: pointer;
+}
+.overview-upcoming:hover { background: #1a435a; }
+.overview-upcoming:focus-visible { outline-color: var(--atmosphere-white); }
+@media (forced-colors: active) {
+  .overview-upcoming { background: ButtonFace; color: ButtonText; border-color: ButtonText; }
+}
+@media (max-width: 759px) {
+  .overview-hero .overview-hero-subline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+  }
+  .overview-hero .overview-chip { min-height: 20px; font-size: 12px; line-height: 1.4; }
+  .overview-upcoming { grid-column: 2; grid-row: 1 / span 2; font-size: 12px; }
+}
+/* Keep the full primary summary visible on shorter phones without shrinking figures or targets. */
+@media (max-width: 759px) and (max-height: 720px) {
+  .dashboard { padding-top: 16px; gap: 20px; }
+  .overview-hero { padding-top: 24px; }
+  .overview-hero .summary-grid { padding-block: 20px; }
+}
