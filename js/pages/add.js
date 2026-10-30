@@ -151,7 +151,7 @@ function renderForm(el, data, params) {
 
     try {
       await appendTransaction(data.txHeaders, fields);
-      btn.textContent = '✓ Added!';
+      btn.textContent = 'Added!';
       setTimeout(() => {
         clearCache();
         navigate('transactions');

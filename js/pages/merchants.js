@@ -5,8 +5,7 @@ import { formatPeriodLabel, fmt, getReportAmount } from '../utils/format.js';
 import { getView, setView }                    from '../viewState.js';
 
 const CAT_COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
-  '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899',
+  '#1d5fbf', '#414b58', '#7a8797', '#b5bec9', '#555555', '#666666', '#999999', '#d0d6de', '#333333',
 ];
 
 function fmtPeriod(period) {

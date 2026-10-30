@@ -30,13 +30,16 @@ The product includes a broader automation layer built in n8n: transaction ingest
 
 ## Visual Design
 
-- Predominantly light theme with warm paper-toned backgrounds and dark text
-- Shared typography system:
-  - display headings use a serif face for product identity
-  - operational text uses a clean sans-serif face for data readability
-- App shell uses elevated rounded surfaces for header, navigation, cards, sheets, and form controls
-- Sign-in screen now uses a custom illustrated brand mark instead of a generic chart icon
-- PWA browser chrome / install chrome uses a matching light `theme_color`
+- Cool blue-grey ground, white flat surfaces and dark text, using the Achromatic ledger design direction.
+- Geist is the shared sans-serif typeface, with tabular figures for financial amounts.
+- Safe limit remains the leading daily allowance; income, expenses, balance and savings share one quiet summary container.
+- Consistent 24px section spacing, compact 8px panel corners, visible keyboard focus and 16px form fields.
+- Overview sections use two columns on tablet/desktop and one column on phones, preserving the saved section order. Today and Budget use full-width rows on larger screens.
+- Desktop uses a centered wide canvas with top navigation; mobile retains the three-destination bottom navigation and safe-area spacing.
+- Charts use blue with neutral comparison/category tones. Ordinary spending is dark ink; over-budget and negative states retain risk colour.
+- Category emoji and tinted icon badges are removed; daily and weekly category summaries use plain names.
+- Sign-in and the shared header use a simple ledger monogram. PWA icons and browser chrome match the new palette.
+- Sign-in and app screens each expose one active semantic page title.
 
 ---
 
@@ -203,7 +206,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - The hero subline surfaces:
   - `payday in N days` when a future salary period start is available
   - `no payday found` when it is not
-  - `Today` spend amount with category emojis when today has expenses
+  - `Today` spend amount when today has expenses
 - Safe Limit still uses the same formula: `balance ÷ days until next payday`
 - Safe Limit shows `—` if the balance is negative or there is no future payday
 
@@ -225,7 +228,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Today Strip
 - Compact strip in the configurable dashboard sections below the hero area
-- Shows today's date, total expenses for today, and top category emojis
+- Shows today's date and total expenses for today
 - Tapping opens the Daily View for today
 - Shows "Nothing spent" when no expense transactions exist for today
 
@@ -240,7 +243,7 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 
 ### Budget vs Actual
 - 2-column grid of budget cards, one per category
-- Each card: category emoji, name, amount spent, budget limit ("of X Kč"), progress bar
+- Each card: category name, amount spent, budget limit ("of X Kč"), progress bar
 - Progress bar colours: green (≤ 80 %), yellow (80–100 %), red (over budget)
 - Period-elapsed indicator: % of billing period elapsed shown next to section title
 - Tap any card → Records filtered to that category + period
@@ -345,7 +348,6 @@ The top of the dashboard is now decision-first rather than four equal-weight met
 - Only search and `Refine` remain visible as primary controls below the summary card
 
 ### Transaction Rows
-- Category emoji badge (tinted background)
 - Merchant / primary text is the first visual line
 - Amount stays on the right (+ green for income, − red for expenses)
 - Category moves into a smaller pill treatment on the metadata row
@@ -396,8 +398,8 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Shows all **expense** transactions for a single calendar day
 - Accessed by tapping a date header in Records, or the Today strip on Overview
 - **Date navigation** — ← → buttons step through every calendar day (including days with no transactions)
-- **Hero card** — wraps daily navigation and total summary into one elevated section
-- **Header** — total expenses for the day + up to 3 category emoji chips (only shown when transactions exist)
+- **Hero card** — wraps daily navigation and total summary into one flat panel
+- **Header** — total expenses for the day + up to 3 category names (only shown when transactions exist)
 - **Empty state** — uses a dedicated calm card rather than a plain text block
 - **Transaction rows** — same style as Records; tap any row to open the edit bottom sheet
 - Future dates and today's date are disabled in the → navigation button (no forward navigation past today)
@@ -438,7 +440,7 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Reached by tapping the Spent in Period card or the Spending tab
 - Period and mode passed from caller context (follows Dashboard's selected mode)
 - Header: period title, total spent, category count, segmented colour bar
-- Sorted list of all expense categories with: emoji badge, name, amount, % of total, progress bar
+- Sorted list of all expense categories with: name, amount, % of total, progress bar
 - Tap any row → Records filtered to that category + period, same mode
 
 ---
@@ -448,7 +450,7 @@ A dedicated section at the bottom of the edit sheet with three role options:
 - Reached by tapping the By Merchant card or the Merchants tab
 - Period and mode passed from caller context (follows Dashboard's selected mode)
 - Header: period title, total spent, merchant count
-- Sorted list of all merchants with: emoji badge (inferred from merchant name), name, amount, % of total, progress bar
+- Sorted list of all merchants with: name, amount, % of total, progress bar
 - Tap any row → Records filtered to that merchant + period, same mode
 - Empty state message prompts adding a Merchant column to the sheet if none exists
 
@@ -485,13 +487,11 @@ A dedicated section at the bottom of the edit sheet with three role options:
 
 ---
 
-## Category Icons
+## Category Presentation
 
-- Every category name and merchant name is matched to an emoji using keyword patterns
-- Covers 100 + patterns in both English and Czech
-- Word-boundary matching prevents false positives (e.g., "Business" does not get a bus emoji)
-- Each category group also gets a distinct tinted background colour for its badge
-- Used across: transaction rows, budget cards, breakdown pages, merchant pages
+- Category and merchant names identify rows without decorative emoji or tinted icon containers.
+- Daily and weekly summaries list the top three category names.
+- Charts retain category labels and amounts alongside a restrained blue-and-neutral palette.
 
 ---
 
@@ -520,7 +520,7 @@ A dedicated section at the bottom of the edit sheet with three role options:
 
 ### Home-screen icon
 
-- App icon (the smiling-face brand mark on warm paper) lives in `icons/`:
+- App icon (the ledger monogram on cool blue-grey) lives in `icons/`:
   - `icon.svg` — source vector
   - `icon-192.png` — 192 × 192 (Android home screen + manifest)
   - `icon-512.png` — 512 × 512 (manifest, used by Android app switcher / install prompt)

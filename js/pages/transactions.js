@@ -443,12 +443,12 @@ function renderPage(el) {
 
       ${hasSecondaryFilters ? `
       <div class="records-active-filters">
-        ${filterDirection ? `<button class="filter-clear filter-clear-dir" id="clear-direction">✕ ${filterDirection === 'income' ? 'Income only' : 'Expenses only'}</button>` : ''}
-        ${filterCat ? `<button class="filter-clear" id="clear-filter">✕ ${filterCat}</button>` : ''}
-        ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">✕ ${filterMerchant}</button>` : ''}
-        ${filterWeek !== null ? `<button class="filter-clear" id="clear-week">✕ Week ${filterWeek}</button>` : ''}
-        ${sortDir !== 'desc' ? `<button class="filter-clear" id="clear-sort">✕ Oldest first</button>` : ''}
-        ${filterNeedsReview ? `<button class="filter-clear" id="clear-needs-review">✕ Needs review</button>` : ''}
+        ${filterDirection ? `<button class="filter-clear filter-clear-dir" id="clear-direction">× ${filterDirection === 'income' ? 'Income only' : 'Expenses only'}</button>` : ''}
+        ${filterCat ? `<button class="filter-clear" id="clear-filter">× ${filterCat}</button>` : ''}
+        ${filterMerchant ? `<button class="filter-clear filter-clear-merchant" id="clear-merchant">× ${filterMerchant}</button>` : ''}
+        ${filterWeek !== null ? `<button class="filter-clear" id="clear-week">× Week ${filterWeek}</button>` : ''}
+        ${sortDir !== 'desc' ? `<button class="filter-clear" id="clear-sort">× Oldest first</button>` : ''}
+        ${filterNeedsReview ? `<button class="filter-clear" id="clear-needs-review">× Needs review</button>` : ''}
         <button class="filter-clear filter-clear-all" id="clear-all-filters">Clear all</button>
       </div>` : ''}
 

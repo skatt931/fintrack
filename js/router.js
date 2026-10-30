@@ -22,9 +22,12 @@ export function navigate(page, params = {}) {
   current   = page;
   curParams = params;
 
-  document.querySelectorAll('.nav-item').forEach(el =>
-    el.classList.toggle('active', el.dataset.page === page)
-  );
+  document.querySelectorAll('.nav-item').forEach(el => {
+    const active = el.dataset.page === page;
+    el.classList.toggle('active', active);
+    if (active) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  });
 
   const titleEl = document.getElementById('page-title');
   if (titleEl) titleEl.textContent = PAGE_TITLES[page] ?? page;

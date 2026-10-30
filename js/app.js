@@ -12,6 +12,14 @@ import { getToken, requestToken, clearToken } from './auth.js';
 import { clearCache }                       from './api.js';
 
 function show(id) {
+  // Keep one semantic page title, including when the auth screen changes.
+  for (const [titleId, active] of [['signin-title', id === 'signin-screen'], ['page-title', id === 'main-screen']]) {
+    const title = document.getElementById(titleId);
+    const replacement = document.createElement(active ? 'h1' : 'div');
+    for (const attribute of title.attributes) replacement.setAttribute(attribute.name, attribute.value);
+    replacement.textContent = title.textContent;
+    title.replaceWith(replacement);
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
@@ -117,6 +125,22 @@ function openMenuSheet() {
 // ── Init ─────────────────────────────────────────────────────────────────────
 
 async function init() {
+  // Data rows are rendered asynchronously; keep their existing click actions keyboard-accessible.
+  const content = document.getElementById('page-content');
+  const rowSelector = '.clickable-card, .budget-card, .txn-item, .owes-row, #planned-dash-card, #spent-card, #merchant-card, .mp-merchant-row, .bp-cat-row';
+  const enhanceRows = () => content.querySelectorAll(rowSelector).forEach(row => {
+    if (row.matches('button, a')) return;
+    row.tabIndex = 0;
+    row.setAttribute('role', row.matches('.txn-item') ? 'button' : 'link');
+  });
+  new MutationObserver(enhanceRows).observe(content, { childList: true, subtree: true });
+  content.addEventListener('keydown', event => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.target.matches(rowSelector)) {
+      event.preventDefault();
+      event.target.click();
+    }
+  });
+
   // Sign-in button
   document.getElementById('signin-btn').addEventListener('click', async () => {
     try {

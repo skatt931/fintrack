@@ -127,7 +127,7 @@ function renderPage(el, data) {
           Overview
         </button>
         <div class="planned-empty" style="padding-top:48px">
-          <p style="font-size:1.5rem;margin-bottom:12px">⚠️</p>
+
           <p><strong>Sheet headers not loaded.</strong></p>
           <p style="margin-top:8px;font-size:0.8rem">The Planned Expenses sheet was created after this session started.<br>
           Tap <strong>⋮ → Refresh Data</strong> to reload, then try again.</p>
@@ -148,7 +148,7 @@ function renderPage(el, data) {
     const emoji    = getCategoryEmoji(item.category || '');
     const isRec    = item.recurring === 'TRUE' || item.recurring === true;
     const paidBadge = showPaidBadge && item._paidThisPeriod
-      ? '<span class="planned-paid-badge">✓ Paid</span>' : '';
+      ? '<span class="planned-paid-badge">Paid</span>' : '';
     return `
     <div class="planned-row" data-row="${item._row}">
       <span class="planned-emoji">${emoji}</span>

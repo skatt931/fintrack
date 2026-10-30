@@ -13,8 +13,7 @@ let dowChart   = null;
 
 // Category colour palette — shared with breakdown.js
 const CAT_COLORS = [
-  '#6366f1', '#10b981', '#f59e0b', '#f43f5e',
-  '#8b5cf6', '#06b6d4', '#f97316', '#84cc16', '#ec4899',
+  '#1d5fbf', '#414b58', '#7a8797', '#b5bec9', '#555555', '#666666', '#999999', '#d0d6de', '#333333',
 ];
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -327,8 +326,8 @@ function miniBarOptions(labelCb) {
       },
     },
     scales: {
-      x: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#7b715d', font: { size: 10 } } },
-      y: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#7b715d', font: { size: 10 }, maxTicksLimit: 4,
+      x: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#60656d', font: { size: 12 } } },
+      y: { grid: { color: 'rgba(86, 72, 49, 0.08)' }, ticks: { color: '#60656d', font: { size: 12 }, maxTicksLimit: 4,
            callback: v => v >= 1000 ? `${Math.round(v/1000)}k` : v } },
     },
   };
@@ -338,7 +337,7 @@ function miniBarOptions(labelCb) {
 function buildSections(htmlMap, sections) {
   return sections
     .filter(s => s.visible)
-    .map(s => htmlMap[s.id] || '')
+    .map(s => htmlMap[s.id] ? `<section class="dashboard-section" data-section="${s.id}">${htmlMap[s.id]}</section>` : '')
     .join('');
 }
 
@@ -445,7 +444,7 @@ function renderPage(el) {
   const todayStripHtml = `
   <div class="today-strip clickable-card" id="today-strip">
     <div class="today-strip-left">
-      <span class="today-strip-label">TODAY</span>
+      <span class="today-strip-label">Today</span>
       <span class="today-strip-date">${todayLabel}</span>
     </div>
     <div class="today-strip-right">
@@ -633,7 +632,7 @@ function renderPage(el) {
     const rows = upcomingPlanned.slice(0, 5).map(p => {
       const emoji = getCategoryEmoji(p.category || '');
       return `<div class="planned-dash-row">
-        <span>${emoji}</span>
+
         <span class="planned-dash-name">${p.name || '—'}</span>
         <span class="planned-dash-amt">−${fmt(parseAmount(p.amount))}</span>
       </div>`;
@@ -680,9 +679,9 @@ function renderPage(el) {
           <button data-mode="calendar" class="${mode === 'calendar' ? 'active' : ''}">Calendar Month</button>
         </div>
         <div class="period-nav">
-          <button class="period-nav-btn" data-dir="prev" ${periodIndex >= periods.length - 1 ? 'disabled' : ''}>‹</button>
+          <button class="period-nav-btn" aria-label="Previous period" data-dir="prev" ${periodIndex >= periods.length - 1 ? 'disabled' : ''}>‹</button>
           <span class="period-label">${fmtPeriod(period)}</span>
-          <button class="period-nav-btn" data-dir="next" ${periodIndex <= 0 ? 'disabled' : ''}>›</button>
+          <button class="period-nav-btn" aria-label="Next period" data-dir="next" ${periodIndex <= 0 ? 'disabled' : ''}>›</button>
         </div>
       </div>
 
@@ -690,8 +689,8 @@ function renderPage(el) {
       <div class="overview-hero">
         <div class="overview-hero-top">
           <div>
-            <div class="overview-kicker">Decision first</div>
-            <div class="overview-title">Safe Limit</div>
+
+            <div class="overview-title">Safe limit</div>
           </div>
           <span class="overview-period-badge">${fmtPeriod(period)}</span>
         </div>
@@ -747,7 +746,7 @@ function renderPage(el) {
       </button>` : ''}
 
       <!-- Configurable sections — ordered + filtered by Dashboard Settings -->
-      ${buildSections(sectionHtmlMap, loadSections())}
+      <div class="dashboard-sections">${buildSections(sectionHtmlMap, loadSections())}</div>
 
       <!-- Refresh -->
       <button class="btn-refresh" id="refresh-btn">
@@ -869,8 +868,7 @@ function renderPage(el) {
           datasets: [{
             data: top.map(b => b.actual),
             backgroundColor: [
-              '#6366f1','#10b981','#f59e0b','#f43f5e',
-              '#8b5cf6','#06b6d4','#f97316','#84cc16','#ec4899',
+              '#1d5fbf', '#414b58', '#7a8797', '#b5bec9', '#555555', '#666666', '#999999', '#d0d6de', '#333333',
             ],
             borderWidth: 0,
             hoverOffset: 8,
@@ -883,7 +881,7 @@ function renderPage(el) {
           plugins: {
             legend: {
               position: 'bottom',
-              labels: { color: '#7b715d', font: { size: 11 }, boxWidth: 12, padding: 10 },
+              labels: { color: '#60656d', font: { size: 11 }, boxWidth: 12, padding: 10 },
             },
             tooltip: {
               callbacks: {
@@ -913,9 +911,9 @@ function renderPage(el) {
           labels: trend.map(([m]) => fmtMonth(m)),
           datasets: [{
             data: trend.map(([, v]) => v),
-            backgroundColor: '#6366f1',
+            backgroundColor: '#1d5fbf',
             borderRadius: 6,
-            hoverBackgroundColor: '#818cf8',
+            hoverBackgroundColor: '#174d99',
           }],
         },
         options: {
@@ -939,9 +937,9 @@ function renderPage(el) {
             labels: weekly.map(([l]) => l),
             datasets: [{
               data: weekly.map(([, v]) => v),
-              backgroundColor: '#10b981',
+              backgroundColor: '#414b58',
               borderRadius: 5,
-              hoverBackgroundColor: '#34d399',
+              hoverBackgroundColor: '#303944',
             }],
           },
           options: {
@@ -967,9 +965,9 @@ function renderPage(el) {
             labels: dow.map(([l]) => l),
             datasets: [{
               data: dow.map(([, v]) => v),
-              backgroundColor: '#f59e0b',
+              backgroundColor: '#7a8797',
               borderRadius: 5,
-              hoverBackgroundColor: '#fbbf24',
+              hoverBackgroundColor: '#666666',
             }],
           },
           options: { ...miniBarOptions(), responsive: true, maintainAspectRatio: false },

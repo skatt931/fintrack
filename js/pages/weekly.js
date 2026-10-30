@@ -138,7 +138,7 @@ function renderPage(el, data, { mode, period, weekNum, weeks, txns }) {
         <div class="daily-header weekly-header">
           <div class="daily-total">${fmt(total)}</div>
           <div class="daily-cat-chips">
-            ${topCats.map(([cat]) => categoryBadge(cat, 'sm')).join('')}
+            ${topCats.map(([cat]) => `<span class="category-name">${cat.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`).join('')}
           </div>
         </div>` : `
         <div class="daily-empty-card">
