@@ -1,0 +1,425 @@
+[
+  {
+    "name": "Overview 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Finance"
+    }
+  },
+  {
+    "name": "Planned 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Planned"
+    }
+  },
+  {
+    "name": "Calendar expense drill-down preserves scope",
+    "pass": true
+  },
+  {
+    "name": "Records 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "txn-search",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Records"
+    }
+  },
+  {
+    "name": "Weekly 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Weekly View"
+    }
+  },
+  {
+    "name": "Daily 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Daily View"
+    }
+  },
+  {
+    "name": "Spending 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Spending"
+    }
+  },
+  {
+    "name": "Merchants 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Merchants"
+    }
+  },
+  {
+    "name": "Settings 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Settings"
+    }
+  },
+  {
+    "name": "Add 390",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "add-amount",
+          "size": 32
+        },
+        {
+          "id": "add-cat",
+          "size": 16
+        },
+        {
+          "id": "add-bank",
+          "size": 16
+        },
+        {
+          "id": "add-date",
+          "size": 16
+        },
+        {
+          "id": "add-note",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Add Expense"
+    }
+  },
+  {
+    "name": "Overview 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Finance"
+    }
+  },
+  {
+    "name": "Planned 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Planned"
+    }
+  },
+  {
+    "name": "Spending 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Spending"
+    }
+  },
+  {
+    "name": "Merchants 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Merchants"
+    }
+  },
+  {
+    "name": "Daily 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Daily View"
+    }
+  },
+  {
+    "name": "Records 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "txn-search",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Records"
+    }
+  },
+  {
+    "name": "Weekly 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Weekly View"
+    }
+  },
+  {
+    "name": "Settings 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Settings"
+    }
+  },
+  {
+    "name": "Add 768",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "add-amount",
+          "size": 32
+        },
+        {
+          "id": "add-cat",
+          "size": 16
+        },
+        {
+          "id": "add-bank",
+          "size": 16
+        },
+        {
+          "id": "add-date",
+          "size": 16
+        },
+        {
+          "id": "add-note",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Add Expense"
+    }
+  },
+  {
+    "name": "Overview 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Finance"
+    }
+  },
+  {
+    "name": "Planned 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Planned"
+    }
+  },
+  {
+    "name": "Spending 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Spending"
+    }
+  },
+  {
+    "name": "Merchants 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Merchants"
+    }
+  },
+  {
+    "name": "Daily 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Daily View"
+    }
+  },
+  {
+    "name": "Records 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "txn-search",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Records"
+    }
+  },
+  {
+    "name": "Weekly 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Weekly View"
+    }
+  },
+  {
+    "name": "Settings 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [],
+      "overflow": false,
+      "page": "Settings"
+    }
+  },
+  {
+    "name": "Add 1440",
+    "pass": true,
+    "metrics": {
+      "brokenImages": [],
+      "fields": [
+        {
+          "id": "add-amount",
+          "size": 32
+        },
+        {
+          "id": "add-cat",
+          "size": 16
+        },
+        {
+          "id": "add-bank",
+          "size": 16
+        },
+        {
+          "id": "add-date",
+          "size": 16
+        },
+        {
+          "id": "add-note",
+          "size": 16
+        }
+      ],
+      "overflow": false,
+      "page": "Add Expense"
+    }
+  },
+  {
+    "name": "Budget editor at 375x400",
+    "pass": true,
+    "metrics": {
+      "bottom": 400,
+      "fieldSize": 16,
+      "height": 400,
+      "top": 132.5
+    }
+  },
+  {
+    "name": "Refresh fetches four fixture sheets and retains Upcoming",
+    "pass": true
+  },
+  {
+    "name": "Merchant search filters records",
+    "pass": true
+  },
+  {
+    "name": "Record editor fits keyboard viewport",
+    "pass": true,
+    "metrics": {
+      "bottom": 400,
+      "fields": [
+        16,
+        16,
+        16
+      ],
+      "top": 0
+    }
+  },
+  {
+    "name": "Mocked save appends record and refreshes list",
+    "pass": true
+  },
+  {
+    "name": "Data state single",
+    "pass": true
+  },
+  {
+    "name": "Data state huge",
+    "pass": true
+  },
+  {
+    "name": "Data state nopay",
+    "pass": true
+  },
+  {
+    "name": "Data state zero",
+    "pass": true
+  },
+  {
+    "name": "Data state noplanned",
+    "pass": true
+  },
+  {
+    "name": "Data state many",
+    "pass": true
+  },
+  {
+    "name": "200 records render",
+    "pass": true
+  },
+  {
+    "name": "Data state empty",
+    "pass": true
+  },
+  {
+    "name": "Large financial values wrap without ellipsis or clipping",
+    "pass": true
+  }
+]

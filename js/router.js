@@ -3,7 +3,7 @@ let current   = null;
 let curParams = {};
 
 const PAGE_TITLES = {
-  dashboard:    'Overview',
+  dashboard:    'Finance',
   transactions: 'Records',
   add:          'Add Expense',
   breakdown:    'Spending',
@@ -21,6 +21,7 @@ export function register(name, fn) {
 export function navigate(page, params = {}) {
   current   = page;
   curParams = params;
+  document.getElementById('main-screen').dataset.page = page;
 
   document.querySelectorAll('.nav-item').forEach(el => {
     const active = el.dataset.page === page;

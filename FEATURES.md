@@ -30,18 +30,17 @@ The product includes a broader automation layer built in n8n: transaction ingest
 
 ## Visual Design
 
-- Tidal light visual direction: grainy marine-blue, aqua and peach colour fields on sign-in and Safe Limit; a lighter atmospheric canvas across the app.
-- Static locally authored grain sits behind content and never intercepts controls; data panels, financial KPI strip, charts, transaction rows and form fields remain opaque.
-- The explicitly requested Grainy Gradients / Digital Atmospheres style supersedes the former achromatic theme.
-- Geist is the shared sans-serif typeface, with tabular figures for financial amounts.
-- Safe limit remains the leading daily allowance; income, expenses, balance and savings share one quiet summary container.
-- An Upcoming shortcut beside today/payday context shows the existing upcoming planned total and opens Planned directly, even when its configurable dashboard section is hidden. It follows the current upcoming cutoff, not a historical period. No items shows “No upcoming expenses”; zero-valued items still show an Upcoming total.
-- 24px section spacing (20px in the outer stack on shorter phones), compact 8px panel corners, visible keyboard focus and 16px form fields. On 375×667 screens, tighter vertical padding keeps the primary financial summary above bottom navigation.
-- Overview sections use two columns on tablet/desktop and one column on phones, preserving the saved section order. Today and Budget use full-width rows on larger screens.
-- Desktop uses a centered wide canvas with top navigation; mobile retains the three-destination bottom navigation and safe-area spacing.
+- Daybreak follows the selected generated design: a pale aqua/apricot grainy sunrise, navy text, generous spacing and an open financial overview.
+- Generated, text-free WebP artwork sits behind real interactive content; portrait and landscape compositions adapt to phone and desktop screens.
+- Geist is the shared sans-serif typeface, with tabular financial figures.
+- **Room for today** leads the overview, followed by unboxed Income, Expenses, Balance and Savings rate figures in a two-column grid.
+- A separate warm Upcoming row below the figures shows the existing upcoming planned total and opens Planned directly, even when its configurable dashboard section is hidden. It follows the current upcoming cutoff, not a historical period. No items shows “No upcoming expenses”; zero-valued items still show a total.
+- The Finance header, labelled bottom navigation and standard Phosphor icons follow the selected mobile composition. Short phones scroll rather than compressing the primary figures; editable fields remain at least 16px with visible keyboard focus.
+- Tablet/desktop place the allowance beside the summary figures, with Upcoming across the row. Additional overview sections retain their saved order and responsive columns.
+- Desktop uses a centered wide canvas with top navigation; mobile retains three destinations and safe-area spacing.
 - Charts use blue with neutral comparison/category tones. Ordinary spending is dark ink; over-budget and negative states retain risk colour.
 - Category emoji and tinted icon badges are removed; daily and weekly category summaries use plain names.
-- Sign-in and the shared header use a simple ledger monogram. PWA browser chrome uses the pale atmospheric canvas colour; install icons retain the neutral ledger mark.
+- Sign-in retains the ledger monogram; the overview header reads Finance. PWA browser chrome uses the pale Daybreak canvas colour; install icons retain the neutral ledger mark.
 - Sign-in and app screens each expose one active semantic page title.
 
 ---
@@ -204,18 +203,18 @@ Opens an action sheet with four options:
 
 The top of the dashboard is now decision-first rather than four equal-weight metric cards:
 
-- **Safe Limit** is the primary hero metric at the top of the screen
-- The hero also shows the active period as a human-readable badge such as `June 2026`
+- **Room for today** is the primary daily allowance at the top of the screen
+- The active period appears in the period control above the hero, without a duplicate badge
 - The hero subline surfaces:
-  - `payday in N days` when a future salary period start is available
-  - `no payday found` when it is not
-  - `Today` spend amount when today has expenses
-- Safe Limit still uses the same formula: `balance ÷ days until next payday`
-- Safe Limit shows `—` if the balance is negative or there is no future payday
+  - `Payday in N days` when a future salary period start is available
+  - `No payday found` when it is not
+  - `Today` spend amount when today has expenses, otherwise `Nothing spent today`
+- Room for today still uses the same formula: `balance ÷ days until next payday`
+- Room for today shows `—` if the balance is negative or there is no future payday
 
 ### Secondary Summary Metrics
 
-`Income`, `Expenses`, `Balance`, and `Savings Rate` appear in a 2×2 grid below the hero:
+`Income`, `Expenses`, `Balance`, and `Savings rate` appear in a 2×2 grid below the hero:
 
 - **Income** — total income for the period; tap to open Records filtered to income only
 - **Expenses** — total expenses; tap to open Records filtered to expenses only

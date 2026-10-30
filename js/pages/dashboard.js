@@ -679,9 +679,9 @@ function renderPage(el) {
           <button data-mode="calendar" class="${mode === 'calendar' ? 'active' : ''}">Calendar Month</button>
         </div>
         <div class="period-nav">
-          <button class="period-nav-btn" aria-label="Previous period" data-dir="prev" ${periodIndex >= periods.length - 1 ? 'disabled' : ''}>‹</button>
+          <button class="period-nav-btn" aria-label="Previous period" data-dir="prev" ${periodIndex >= periods.length - 1 ? 'disabled' : ''}><img src="assets/icons/caret-left.svg" width="20" height="20" alt="" aria-hidden="true"></button>
           <span class="period-label">${fmtPeriod(period)}</span>
-          <button class="period-nav-btn" aria-label="Next period" data-dir="next" ${periodIndex <= 0 ? 'disabled' : ''}>›</button>
+          <button class="period-nav-btn" aria-label="Next period" data-dir="next" ${periodIndex <= 0 ? 'disabled' : ''}><img src="assets/icons/caret-right.svg" width="20" height="20" alt="" aria-hidden="true"></button>
         </div>
       </div>
 
@@ -690,39 +690,34 @@ function renderPage(el) {
         <div class="overview-hero-top">
           <div>
 
-            <div class="overview-title">Safe limit</div>
+            <div class="overview-title">Room for today</div>
           </div>
-          <span class="overview-period-badge">${fmtPeriod(period)}</span>
         </div>
 
         <div class="overview-hero-amount ${safeLimit !== null ? 'positive' : 'muted'}">
-          ${safeLimit !== null ? `${fmt(Math.round(safeLimit))} / day` : '—'}
+          ${safeLimit !== null ? `<span class="daybreak-amount-value">${fmt(Math.round(safeLimit))}</span><span class="daybreak-amount-unit"> / day</span>` : '—'}
         </div>
 
         <div class="overview-hero-subline">
           ${daysUntilPayday !== null
-            ? `<span class="overview-chip">payday in ${daysUntilPayday} day${daysUntilPayday === 1 ? '' : 's'}</span>`
-            : '<span class="overview-chip">no payday found</span>'}
+            ? `<span class="overview-chip">Payday in ${daysUntilPayday} day${daysUntilPayday === 1 ? '' : 's'}</span>`
+            : '<span class="overview-chip">No payday found</span>'}
           <span class="overview-chip overview-chip-spend">
-            Today · ${todayTxns.length > 0 ? fmt(todayTotal) : 'Nothing spent'}
+            ${todayTxns.length > 0 ? `Today · ${fmt(todayTotal)}` : 'Nothing spent today'}
             ${todayCats.length ? `<span class="overview-chip-icons">${todayCats.map(([cat]) => getCategoryEmoji(cat)).join(' ')}</span>` : ''}
           </span>
-          <button type="button" id="overview-upcoming" class="overview-upcoming"
-            aria-label="View upcoming planned expenses${upcomingPlanned.length ? ', ' + fmt(upcomingPlannedTotal) : ''}">
-            ${upcomingPlanned.length ? `Upcoming · ${fmt(upcomingPlannedTotal)} →` : 'No upcoming expenses →'}
-          </button>
         </div>
 
         <div class="summary-grid summary-grid-secondary">
           <div class="summary-card summary-card-compact card-income clickable-card" id="card-income">
             <div class="card-label">Income</div>
             <div class="card-value">${fmt(summary.income)}</div>
-            <div class="card-tap-hint">tap to see →</div>
+
           </div>
           <div class="summary-card summary-card-compact card-expense clickable-card" id="card-expense">
             <div class="card-label">Expenses</div>
             <div class="card-value">${fmt(summary.expenses)}</div>
-            <div class="card-tap-hint">tap to see →</div>
+
           </div>
           <div class="summary-card summary-card-compact card-balance${savingsRate === null ? ' summary-card-wide' : ''}">
             <div class="card-label">Balance</div>
@@ -732,10 +727,18 @@ function renderPage(el) {
           </div>
           ${savingsRate !== null ? `
           <div class="summary-card summary-card-compact card-savings">
-            <div class="card-label">Savings Rate</div>
+            <div class="card-label">Savings rate</div>
             <div class="card-value ${savingsRate >= 0 ? 'positive' : 'negative'}">${savingsRate >= 0 ? '' : '−'}${Math.abs(savingsRate).toFixed(0)}%</div>
           </div>` : ''}
         </div>
+        <button type="button" id="overview-upcoming" class="overview-upcoming"
+          aria-label="View upcoming planned expenses${upcomingPlanned.length ? ', ' + fmt(upcomingPlannedTotal) : ''}">
+          <span class="daybreak-upcoming-icon" aria-hidden="true"><img src="assets/icons/calendar-blank.svg" alt="" width="26" height="26"></span>
+          <span class="daybreak-upcoming-copy"><span class="daybreak-upcoming-label">Upcoming</span>
+            <span class="daybreak-upcoming-amount">${upcomingPlanned.length ? fmt(upcomingPlannedTotal) : 'No upcoming expenses'}</span>
+          </span>
+          <img class="daybreak-upcoming-arrow" src="assets/icons/caret-right.svg" alt="" width="22" height="22" aria-hidden="true">
+        </button>
       </div>
 
       <!-- Needs-review banner (always shown) -->
