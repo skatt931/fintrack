@@ -6,7 +6,7 @@ final result: passed
 
 Selected first generated image: `01-daybreak.png`, 853×1844. Logical mobile target390×844, density normalization390/853. Compared against the existing running Finance PWA using local Google Sheets fixtures matching the reference figures. All text, figures, controls and navigation are real UI. Production data is never replaced by sample values.
 
-Local evidence under `.taste-skill/daybreak/`: `reference.png`, `mobile-final.png`, `comparison-final.png` (812×888 side-by-side), `comparison-focused.png` (allowance/metrics/Upcoming), `overview-768.png`, `overview-1440.png`, `keyboard-budget.png`, `keyboard-record.png`, `large-amount-final.png`. Screenshots captured in the in-app browser; exact viewport overrides, UI content only. Evidence is local, not a production asset.
+Evidence screenshots (reference, mobile/tablet/desktop comparisons, keyboard states, large-amount case) were captured in the in-app browser with exact viewport overrides, UI content only. They were local-only and have been deleted; re-capture them when this QA is repeated.
 
 ## Look-and-fix history
 

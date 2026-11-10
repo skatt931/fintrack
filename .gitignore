@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.DS_Store
+
+# Personal data exports from the Sheets -> Supabase import (this repo is public)
+supabase/scripts/csv/
